@@ -4,4 +4,10 @@
   html {
     overflow-x: hidden;
   }
+
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    max-width: 100%;
+  }
 }
