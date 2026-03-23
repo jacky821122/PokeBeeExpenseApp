@@ -78,7 +78,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
+    "min-w-0 w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
