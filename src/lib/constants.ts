@@ -1,6 +1,26 @@
-export const CATEGORIES = ["食材", "包材", "設備", "雜項"] as const;
+export const CATEGORIES = [
+  "肉及蛋白質",
+  "海鮮",
+  "菜",
+  "水果",
+  "醬料",
+  "調味粉",
+  "外帶耗材",
+  "耗材",
+] as const;
 
 export const UNITS = ["個", "份", "顆", "斤", "公克", "包", "組"] as const;
+
+export const ITEMS_BY_CATEGORY: Record<string, readonly string[]> = {
+  肉及蛋白質: ["梅花豬", "牛腱", "雞胸肉", "豆腐", "雞蛋"],
+  海鮮: ["蝦子", "嚴選生鮭魚", "生鮪魚", "蝦卵"],
+  菜: ["花椰菜", "玉米粒", "紅蘿蔔", "杏鮑菇", "毛豆仁", "小黃瓜", "泡菜", "海帶絲", "玉米筍", "櫛瓜"],
+  水果: ["蘋果", "蕃茄"],
+  醬料: ["是拉差", "美乃滋", "鰹魚醬油", "柴魚醬油", "和風芥末", "蜂蜜芥末", "胡麻醬", "泰式酸辣醬", "壽喜燒醬", "蜂蜜", "味琳", "米酒"],
+  調味粉: ["青花椒麻粉", "味島香鬆（素）", "味島香鬆", "七味粉", "蒜酥"],
+  外帶耗材: ["紙碗", "塑膠蓋", "湯叉"],
+  耗材: ["耐熱袋", "保鮮膜"],
+};
 
 export type Category = (typeof CATEGORIES)[number];
 export type Unit = (typeof UNITS)[number];

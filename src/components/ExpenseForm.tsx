@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CATEGORIES, UNITS } from "@/lib/constants";
+import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
-
-const PRESET_ITEMS = ["雞胸肉", "花椰菜", "垃圾袋"];
 
 function getTodayString() {
   const now = new Date();
@@ -17,7 +15,7 @@ function getTodayString() {
 interface ComboboxProps {
   value: string;
   onChange: (v: string) => void;
-  options: string[];
+  options: readonly string[];
   placeholder?: string;
   inputClass: string;
 }
@@ -183,7 +181,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         <label className={labelClass}>類別</label>
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => { setCategory(e.target.value); setItem(""); }}
           className={inputClass}
           required
         >
@@ -201,8 +199,8 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         <Combobox
           value={item}
           onChange={setItem}
-          options={PRESET_ITEMS}
-          placeholder="例：雞胸肉"
+          options={ITEMS_BY_CATEGORY[category] ?? []}
+          placeholder="輸入或選取品項"
           inputClass={inputClass}
         />
       </div>
