@@ -26,7 +26,10 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
   const sheetId = process.env.SHEET_ID!;
 
   const unit_price = input.quantity > 0 ? input.total_price / input.quantity : 0;
-  const created_at = new Date().toISOString();
+  // Store timestamp in UTC+8 (Asia/Taipei)
+  const now = new Date();
+  const twTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const created_at = twTime.toISOString().replace("Z", "+08:00");
 
   const row = [
     input.date,
