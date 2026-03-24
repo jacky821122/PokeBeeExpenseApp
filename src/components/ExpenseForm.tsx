@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CATEGORIES, UNITS } from "@/lib/constants";
+import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
+
+const PRESET_ITEMS = ["雞胸肉", "花椰菜", "垃圾袋"];
 
 function getTodayString() {
   const now = new Date();
@@ -21,13 +24,25 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [item, setItem] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState<string>(UNITS[0]);
-  const [unitPrice, setUnitPrice] = useState("");
+  const [totalPrice, setTotalPrice] = useState("");
   const [supplier, setSupplier] = useState("");
   const [purchaser, setPurchaser] = useState("");
   const [note, setNote] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const [itemOptions, setItemOptions] = useState<string[]>(PRESET_ITEMS);
+  const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
+  const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const cachedItems = getCachedValues("item");
+    const merged = [...PRESET_ITEMS, ...cachedItems.filter((v) => !PRESET_ITEMS.includes(v))];
+    setItemOptions(merged);
+    setSupplierOptions(getCachedValues("supplier"));
+    setPurchaserOptions(getCachedValues("purchaser"));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,7 +61,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           item: item.trim(),
           quantity: Number(quantity),
           unit,
-          unit_price: Number(unitPrice),
+          total_price: Number(totalPrice),
           supplier: supplier.trim(),
           purchaser: purchaser.trim(),
           note: note.trim(),
@@ -58,11 +73,26 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         throw new Error(data.error || "儲存失敗");
       }
 
+      // Save to autocomplete cache
+      if (item.trim()) {
+        addCachedValue("item", item.trim());
+        const cachedItems = getCachedValues("item");
+        setItemOptions([...PRESET_ITEMS, ...cachedItems.filter((v) => !PRESET_ITEMS.includes(v))]);
+      }
+      if (supplier.trim()) {
+        addCachedValue("supplier", supplier.trim());
+        setSupplierOptions(getCachedValues("supplier"));
+      }
+      if (purchaser.trim()) {
+        addCachedValue("purchaser", purchaser.trim());
+        setPurchaserOptions(getCachedValues("purchaser"));
+      }
+
       // Reset form but keep category, purchaser, date
       setItem("");
       setQuantity("1");
       setUnit(UNITS[0]);
-      setUnitPrice("");
+      setTotalPrice("");
       setSupplier("");
       setNote("");
 
@@ -112,17 +142,23 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </select>
       </div>
 
-      {/* Item */}
+      {/* Item — combobox with datalist */}
       <div>
         <label className={labelClass}>品項</label>
         <input
           type="text"
+          list="item-options"
           value={item}
           onChange={(e) => setItem(e.target.value)}
           placeholder="例：雞胸肉"
           className={inputClass}
           required
         />
+        <datalist id="item-options">
+          {itemOptions.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
       </div>
 
       {/* Quantity + Unit (side by side) */}
@@ -157,14 +193,14 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </div>
       </div>
 
-      {/* Unit Price */}
+      {/* Total Price */}
       <div>
-        <label className={labelClass}>單價</label>
+        <label className={labelClass}>總價</label>
         <input
           type="number"
           inputMode="decimal"
-          value={unitPrice}
-          onChange={(e) => setUnitPrice(e.target.value)}
+          value={totalPrice}
+          onChange={(e) => setTotalPrice(e.target.value)}
           placeholder="0"
           min="0"
           step="any"
@@ -180,11 +216,17 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </label>
         <input
           type="text"
+          list="supplier-options"
           value={supplier}
           onChange={(e) => setSupplier(e.target.value)}
           placeholder="例：全聯、Costco"
           className={inputClass}
         />
+        <datalist id="supplier-options">
+          {supplierOptions.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
       </div>
 
       <div>
@@ -193,11 +235,17 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </label>
         <input
           type="text"
+          list="purchaser-options"
           value={purchaser}
           onChange={(e) => setPurchaser(e.target.value)}
           placeholder="例：小明"
           className={inputClass}
         />
+        <datalist id="purchaser-options">
+          {purchaserOptions.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
       </div>
 
       <div>

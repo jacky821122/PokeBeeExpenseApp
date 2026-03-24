@@ -25,7 +25,7 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
   const sheets = getSheets();
   const sheetId = process.env.SHEET_ID!;
 
-  const total_price = input.quantity * input.unit_price;
+  const unit_price = input.quantity > 0 ? input.total_price / input.quantity : 0;
   const created_at = new Date().toISOString();
 
   const row = [
@@ -34,8 +34,8 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
     input.item,
     input.quantity,
     input.unit,
-    input.unit_price,
-    total_price,
+    unit_price,
+    input.total_price,
     input.supplier || "",
     input.purchaser || "",
     input.note || "",
@@ -49,7 +49,7 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
     requestBody: { values: [row] },
   });
 
-  return { ...input, total_price, created_at };
+  return { ...input, unit_price, created_at };
 }
 
 export async function getRecentExpenses(n: number = 30): Promise<Expense[]> {

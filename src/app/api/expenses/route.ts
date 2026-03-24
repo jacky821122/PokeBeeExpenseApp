@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields
-    const { date, category, item, quantity, unit, unit_price } = body;
+    const { date, category, item, quantity, unit, total_price } = body;
 
-    if (!date || !category || !item || quantity == null || !unit || unit_price == null) {
+    if (!date || !category || !item || quantity == null || !unit || total_price == null) {
       return NextResponse.json(
         { error: "缺少必填欄位" },
         { status: 400 }
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof unit_price !== "number" || unit_price < 0) {
+    if (typeof total_price !== "number" || total_price < 0) {
       return NextResponse.json(
-        { error: "單價不可為負數" },
+        { error: "總價不可為負數" },
         { status: 400 }
       );
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       item,
       quantity,
       unit,
-      unit_price,
+      total_price,
       supplier: body.supplier || "",
       purchaser: body.purchaser || "",
       note: body.note || "",

@@ -4,13 +4,13 @@ export interface ExpenseInput {
   item: string;
   quantity: number;
   unit: string;
-  unit_price: number;
+  total_price: number; // User inputs total price; unit_price is derived
   supplier?: string;
   purchaser?: string;
   note?: string;
 }
 
 export interface Expense extends ExpenseInput {
-  total_price: number;
+  unit_price: number; // Derived: total_price / quantity
   created_at: string; // ISO datetime
 }
