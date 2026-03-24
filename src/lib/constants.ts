@@ -7,6 +7,7 @@ export const CATEGORIES = [
   "調味粉",
   "外帶耗材",
   "耗材",
+  "雜項",
 ] as const;
 
 export const UNITS = ["個", "份", "顆", "斤", "公克", "包", "組"] as const;

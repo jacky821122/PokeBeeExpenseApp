@@ -237,6 +237,27 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </div>
       </div>
 
+      {/* Quantity quick buttons */}
+      <div className="grid grid-cols-6 gap-1.5">
+        {[
+          { label: "+1", action: () => setQuantity((q) => String(Math.max(0, Number(q) + 1))) },
+          { label: "-1", action: () => setQuantity((q) => String(Math.max(0, Number(q) - 1))) },
+          { label: "+5", action: () => setQuantity((q) => String(Math.max(0, Number(q) + 5))) },
+          { label: "-5", action: () => setQuantity((q) => String(Math.max(0, Number(q) - 5))) },
+          { label: "5",  action: () => setQuantity("5") },
+          { label: "10", action: () => setQuantity("10") },
+        ].map(({ label, action }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={action}
+            className="rounded-lg border border-gray-300 py-2 text-sm text-gray-600 active:bg-gray-100"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Total Price */}
       <div>
         <label className={labelClass}>總價</label>
