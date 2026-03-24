@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
 
@@ -12,6 +12,67 @@ function getTodayString() {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+interface ItemComboboxProps {
+  value: string;
+  onChange: (v: string) => void;
+  inputClass: string;
+}
+
+function ItemCombobox({ value, onChange, inputClass }: ItemComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = PRESET_ITEMS.filter((o) =>
+    o.toLowerCase().includes(value.toLowerCase())
+  );
+  const showDropdown = open && filtered.length > 0;
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="例：雞胸肉"
+        className={inputClass}
+        required
+        autoComplete="off"
+      />
+      {showDropdown && (
+        <ul className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-md">
+          {filtered.map((o) => (
+            <li
+              key={o}
+              onMouseDown={(e) => {
+                e.preventDefault(); // prevent input blur before click registers
+                onChange(o);
+                setOpen(false);
+              }}
+              className="cursor-pointer px-4 py-3 text-base hover:bg-blue-50 active:bg-blue-100"
+            >
+              {o}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 interface ExpenseFormProps {
@@ -32,14 +93,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [itemOptions, setItemOptions] = useState<string[]>(PRESET_ITEMS);
   const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
   const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    const cachedItems = getCachedValues("item");
-    const merged = [...PRESET_ITEMS, ...cachedItems.filter((v) => !PRESET_ITEMS.includes(v))];
-    setItemOptions(merged);
     setSupplierOptions(getCachedValues("supplier"));
     setPurchaserOptions(getCachedValues("purchaser"));
   }, []);
@@ -73,12 +130,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         throw new Error(data.error || "儲存失敗");
       }
 
-      // Save to autocomplete cache
-      if (item.trim()) {
-        addCachedValue("item", item.trim());
-        const cachedItems = getCachedValues("item");
-        setItemOptions([...PRESET_ITEMS, ...cachedItems.filter((v) => !PRESET_ITEMS.includes(v))]);
-      }
+      // Save supplier/purchaser to autocomplete cache
       if (supplier.trim()) {
         addCachedValue("supplier", supplier.trim());
         setSupplierOptions(getCachedValues("supplier"));
@@ -142,23 +194,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </select>
       </div>
 
-      {/* Item — combobox with datalist */}
+      {/* Item — combobox with fixed preset options */}
       <div>
         <label className={labelClass}>品項</label>
-        <input
-          type="text"
-          list="item-options"
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
-          placeholder="例：雞胸肉"
-          className={inputClass}
-          required
-        />
-        <datalist id="item-options">
-          {itemOptions.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
+        <ItemCombobox value={item} onChange={setItem} inputClass={inputClass} />
       </div>
 
       {/* Quantity + Unit (side by side) */}
