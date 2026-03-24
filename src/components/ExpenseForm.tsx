@@ -14,17 +14,19 @@ function getTodayString() {
   return `${y}-${m}-${d}`;
 }
 
-interface ItemComboboxProps {
+interface ComboboxProps {
   value: string;
   onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
   inputClass: string;
 }
 
-function ItemCombobox({ value, onChange, inputClass }: ItemComboboxProps) {
+function Combobox({ value, onChange, options, placeholder, inputClass }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const filtered = PRESET_ITEMS.filter((o) =>
+  const filtered = options.filter((o) =>
     o.toLowerCase().includes(value.toLowerCase())
   );
   const showDropdown = open && filtered.length > 0;
@@ -49,9 +51,8 @@ function ItemCombobox({ value, onChange, inputClass }: ItemComboboxProps) {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="例：雞胸肉"
+        placeholder={placeholder}
         className={inputClass}
-        required
         autoComplete="off"
       />
       {showDropdown && (
@@ -197,7 +198,13 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       {/* Item — combobox with fixed preset options */}
       <div>
         <label className={labelClass}>品項</label>
-        <ItemCombobox value={item} onChange={setItem} inputClass={inputClass} />
+        <Combobox
+          value={item}
+          onChange={setItem}
+          options={PRESET_ITEMS}
+          placeholder="例：雞胸肉"
+          inputClass={inputClass}
+        />
       </div>
 
       {/* Quantity + Unit (side by side) */}
@@ -253,38 +260,26 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         <label className={labelClass}>
           來源 <span className="text-gray-400">(選填)</span>
         </label>
-        <input
-          type="text"
-          list="supplier-options"
+        <Combobox
           value={supplier}
-          onChange={(e) => setSupplier(e.target.value)}
+          onChange={setSupplier}
+          options={supplierOptions}
           placeholder="例：全聯、Costco"
-          className={inputClass}
+          inputClass={inputClass}
         />
-        <datalist id="supplier-options">
-          {supplierOptions.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
       </div>
 
       <div>
         <label className={labelClass}>
           購買人 <span className="text-gray-400">(選填)</span>
         </label>
-        <input
-          type="text"
-          list="purchaser-options"
+        <Combobox
           value={purchaser}
-          onChange={(e) => setPurchaser(e.target.value)}
+          onChange={setPurchaser}
+          options={purchaserOptions}
           placeholder="例：小明"
-          className={inputClass}
+          inputClass={inputClass}
         />
-        <datalist id="purchaser-options">
-          {purchaserOptions.map((o) => (
-            <option key={o} value={o} />
-          ))}
-        </datalist>
       </div>
 
       <div>
