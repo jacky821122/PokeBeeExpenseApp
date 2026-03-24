@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "pokebee 支出記錄",
   description: "內部支出快速記錄工具",
   manifest: "/manifest.json",
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
