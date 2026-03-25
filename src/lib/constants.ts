@@ -7,6 +7,7 @@ export const CATEGORIES = [
   "調味粉",
   "外帶耗材",
   "耗材",
+  "主食",
   "雜項",
 ] as const;
 
@@ -21,6 +22,7 @@ export const ITEMS_BY_CATEGORY: Record<string, readonly string[]> = {
   調味粉: ["青花椒麻粉", "味島香鬆（素）", "味島香鬆", "七味粉", "蒜酥"],
   外帶耗材: ["紙碗", "塑膠蓋", "湯叉"],
   耗材: ["耐熱袋", "保鮮膜"],
+  主食: ["米", "糙米"],
 };
 
 export type Category = (typeof CATEGORIES)[number];
