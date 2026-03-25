@@ -63,8 +63,6 @@ function StatsTab({ expenses }: { expenses: Expense[] }) {
   const byCategory = buildCategoryStats(expenses);
   const byItem = buildItemStats(expenses);
   const bySupplier = buildSupplierStats(expenses);
-  const maxCatAmt = byCategory[0]?.amt ?? 1;
-
   return (
     <div className="space-y-8">
       {/* Monthly */}
@@ -103,7 +101,7 @@ function StatsTab({ expenses }: { expenses: Expense[] }) {
               <div className="h-2 w-full rounded-full bg-gray-100">
                 <div
                   className="h-2 rounded-full bg-blue-400"
-                  style={{ width: `${(amt / maxCatAmt) * 100}%` }}
+                  style={{ width: `${pct}%` }}
                 />
               </div>
             </div>
