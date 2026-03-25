@@ -49,21 +49,13 @@ function buildCategoryStats(expenses: Expense[]) {
     .map(([cat, amt]) => ({ cat, amt, pct: total > 0 ? (amt / total) * 100 : 0 }));
 }
 
-function buildItemUnitPriceStats(expenses: Expense[]) {
-  const map: Record<string, { category: string; totalUnitPrice: number; count: number }> = {};
+function buildItemStats(expenses: Expense[]) {
+  const map: Record<string, number> = {};
   for (const e of expenses) {
-    if (e.unit_price <= 0) continue;
-    if (!map[e.item]) map[e.item] = { category: e.category, totalUnitPrice: 0, count: 0 };
-    map[e.item].totalUnitPrice += e.unit_price;
-    map[e.item].count += 1;
+    map[e.item] = (map[e.item] ?? 0) + e.total_price;
   }
   return Object.entries(map)
-    .map(([item, { category, totalUnitPrice, count }]) => ({
-      item,
-      category,
-      avgUnitPrice: totalUnitPrice / count,
-    }))
-    .sort((a, b) => b.avgUnitPrice - a.avgUnitPrice)
+    .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 }
 
@@ -82,7 +74,7 @@ function buildSupplierStats(expenses: Expense[]) {
 function StatsTab({ expenses }: { expenses: Expense[] }) {
   const monthly = buildMonthlyStats(expenses);
   const byCategory = buildCategoryStats(expenses);
-  const byItem = buildItemUnitPriceStats(expenses);
+  const byItem = buildItemStats(expenses);
   const bySupplier = buildSupplierStats(expenses);
   return (
     <div className="space-y-8">
@@ -153,23 +145,21 @@ function StatsTab({ expenses }: { expenses: Expense[] }) {
         </ResponsiveContainer>
       </section>
 
-      {/* Top items by unit price */}
+      {/* Top items */}
       <section>
-        <h3 className="mb-3 font-semibold text-gray-700">單價前 10 品項</h3>
+        <h3 className="mb-3 font-semibold text-gray-700">支出前 10 品項</h3>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left text-gray-500">
               <th className="pb-1 pr-4">品項</th>
-              <th className="pb-1 pr-4">類別</th>
-              <th className="pb-1 text-right">均單價</th>
+              <th className="pb-1 text-right">合計</th>
             </tr>
           </thead>
           <tbody>
-            {byItem.map(({ item, category, avgUnitPrice }) => (
+            {byItem.map(([item, amt]) => (
               <tr key={item} className="border-b border-gray-100">
                 <td className="py-1.5 pr-4">{item}</td>
-                <td className="py-1.5 pr-4 text-gray-500">{category}</td>
-                <td className="py-1.5 text-right">{formatMoney(Math.round(avgUnitPrice))}</td>
+                <td className="py-1.5 text-right">{formatMoney(amt)}</td>
               </tr>
             ))}
           </tbody>
