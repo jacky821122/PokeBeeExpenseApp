@@ -1,8 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { CATEGORIES } from "@/lib/constants";
 import type { Expense } from "@/types/expense";
+
+const PIE_COLORS = [
+  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#f97316", "#84cc16", "#ec4899", "#6b7280",
+];
 
 // ─── Stats helpers ───────────────────────────────────────────────
 
@@ -89,24 +102,47 @@ function StatsTab({ expenses }: { expenses: Expense[] }) {
       {/* Category breakdown */}
       <section>
         <h3 className="mb-3 font-semibold text-gray-700">類別分佈</h3>
-        <div className="space-y-2">
-          {byCategory.map(({ cat, amt, pct }) => (
-            <div key={cat}>
-              <div className="mb-0.5 flex justify-between text-sm">
-                <span>{cat}</span>
-                <span className="text-gray-500">
-                  {formatMoney(amt)} <span className="text-gray-400">({pct.toFixed(1)}%)</span>
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-gray-100">
-                <div
-                  className="h-2 rounded-full bg-blue-400"
-                  style={{ width: `${pct}%` }}
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={byCategory.map(({ cat, amt }) => ({ name: cat, value: amt }))}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={110}
+              paddingAngle={2}
+              dataKey="value"
+            >
+              {byCategory.map((_, i) => (
+                <Cell
+                  key={i}
+                  fill={PIE_COLORS[i % PIE_COLORS.length]}
+                  stroke="white"
+                  strokeWidth={2}
                 />
-              </div>
-            </div>
-          ))}
-        </div>
+              ))}
+            </Pie>
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const { name, value } = payload[0];
+                const total = byCategory.reduce((s, c) => s + c.amt, 0);
+                const pct = total > 0 ? ((Number(value) / total) * 100).toFixed(1) : "0";
+                return (
+                  <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-sm">
+                    <p className="font-medium text-gray-800">{name}</p>
+                    <p className="text-gray-600">{formatMoney(Number(value))} ({pct}%)</p>
+                  </div>
+                );
+              }}
+            />
+            <Legend
+              formatter={(value) => (
+                <span className="text-sm text-gray-700">{value}</span>
+              )}
+            />
+          </PieChart>
+        </ResponsiveContainer>
       </section>
 
       {/* Top items */}
