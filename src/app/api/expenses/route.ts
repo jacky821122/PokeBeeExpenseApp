@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendExpense, getRecentExpenses } from "@/lib/sheets";
+import { appendExpense, getRecentExpenses, deleteExpenseRow } from "@/lib/sheets";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import type { ExpenseInput } from "@/types/expense";
 
@@ -78,5 +78,22 @@ export async function GET() {
       { error: "讀取失敗，請稍後再試" },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { row_index, created_at } = await request.json();
+
+    if (typeof row_index !== "number" || !created_at) {
+      return NextResponse.json({ error: "缺少必填欄位" }, { status: 400 });
+    }
+
+    await deleteExpenseRow(row_index, created_at);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "撤回失敗";
+    console.error("Failed to delete expense:", error);
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

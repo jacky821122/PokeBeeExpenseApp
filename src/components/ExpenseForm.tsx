@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
+import type { Expense } from "@/types/expense";
 
 function getTodayString() {
   const now = new Date();
@@ -75,7 +76,7 @@ function Combobox({ value, onChange, options, placeholder, inputClass }: Combobo
 }
 
 interface ExpenseFormProps {
-  onSuccess: () => void;
+  onSuccess: (expense: Expense) => void;
 }
 
 export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
@@ -94,10 +95,33 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
 
   const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
   const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
+  const [itemsByCategory, setItemsByCategory] = useState<Record<string, readonly string[]>>(ITEMS_BY_CATEGORY);
 
   useEffect(() => {
     setSupplierOptions(getCachedValues("supplier"));
+    // Seed purchaser options from localStorage immediately, then merge with server data
     setPurchaserOptions(getCachedValues("purchaser"));
+    fetch("/api/purchasers")
+      .then((r) => r.ok ? r.json() : [])
+      .then((serverNames: string[]) => {
+        setPurchaserOptions((local) => {
+          const merged = [...serverNames];
+          for (const name of local) {
+            if (!merged.includes(name)) merged.push(name);
+          }
+          return merged;
+        });
+      })
+      .catch(() => {}); // Keep localStorage values on failure
+
+    fetch("/api/items")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: Record<string, string[]> | null) => {
+        if (data && Object.keys(data).length > 0) {
+          setItemsByCategory(data);
+        }
+      })
+      .catch(() => {}); // Keep constants fallback on failure
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -129,6 +153,8 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         throw new Error(data.error || "儲存失敗");
       }
 
+      const expense = await res.json();
+
       // Save supplier/purchaser to autocomplete cache
       if (supplier.trim()) {
         addCachedValue("supplier", supplier.trim());
@@ -136,7 +162,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       }
       if (purchaser.trim()) {
         addCachedValue("purchaser", purchaser.trim());
-        setPurchaserOptions(getCachedValues("purchaser"));
+        setPurchaserOptions((prev) => {
+          const updated = [purchaser.trim(), ...prev.filter((n) => n !== purchaser.trim())];
+          return updated;
+        });
       }
 
       // Reset form but keep category, purchaser, date
@@ -149,7 +178,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
 
       setToast("已儲存");
       setTimeout(() => setToast(null), 2000);
-      onSuccess();
+      onSuccess(expense);
     } catch (err) {
       setToast(err instanceof Error ? err.message : "儲存失敗");
       setTimeout(() => setToast(null), 3000);
@@ -199,7 +228,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         <Combobox
           value={item}
           onChange={setItem}
-          options={ITEMS_BY_CATEGORY[category] ?? []}
+          options={itemsByCategory[category] ?? []}
           placeholder="輸入或選取品項"
           inputClass={inputClass}
         />

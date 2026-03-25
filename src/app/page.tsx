@@ -3,6 +3,13 @@
 import { useState } from "react";
 import ExpenseForm from "@/components/ExpenseForm";
 import RecentEntries from "@/components/RecentEntries";
+import type { Expense } from "@/types/expense";
+
+export type UndoableEntry = {
+  row_index: number;
+  created_at: string;
+  item: string;
+};
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -28,11 +35,50 @@ export default function Home() {
   const [showForm, setShowForm] = useState(true);
   const [showRecent, setShowRecent] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [undoable, setUndoable] = useState<UndoableEntry[]>([]);
 
   function handleRefresh() {
     if (refreshing) return;
     setRefreshing(true);
     setTimeout(() => window.location.reload(), 600);
+  }
+
+  function handleSuccess(expense: Expense) {
+    setRefreshKey((k) => k + 1);
+    if (expense.row_index) {
+      const entry: UndoableEntry = {
+        row_index: expense.row_index,
+        created_at: expense.created_at,
+        item: expense.item,
+      };
+      setUndoable((prev) => [...prev, entry]);
+      // Auto-expire after 15 minutes
+      setTimeout(() => {
+        setUndoable((prev) => prev.filter((e) => e.created_at !== entry.created_at));
+      }, 15 * 60 * 1000);
+    }
+  }
+
+  async function handleUndo(row_index: number) {
+    const entry = undoable.find((e) => e.row_index === row_index);
+    if (!entry) return;
+
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ row_index, created_at: entry.created_at }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "撤回失敗");
+        return;
+      }
+      setUndoable((prev) => prev.filter((e) => e.row_index !== row_index));
+      setRefreshKey((k) => k + 1);
+    } catch {
+      alert("撤回失敗，請稍後再試");
+    }
   }
 
   return (
@@ -76,7 +122,7 @@ export default function Home() {
         </button>
       </div>
 
-      {showForm && <ExpenseForm onSuccess={() => setRefreshKey((k) => k + 1)} />}
+      {showForm && <ExpenseForm onSuccess={handleSuccess} />}
 
       <hr className="my-8 border-gray-200" />
 
@@ -89,7 +135,13 @@ export default function Home() {
         <ChevronIcon open={showRecent} />
       </button>
 
-      {showRecent && <RecentEntries refreshKey={refreshKey} />}
+      {showRecent && (
+        <RecentEntries
+          refreshKey={refreshKey}
+          undoable={undoable}
+          onUndo={handleUndo}
+        />
+      )}
     </main>
   );
 }

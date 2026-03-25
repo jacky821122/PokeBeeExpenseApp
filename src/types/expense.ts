@@ -13,4 +13,5 @@ export interface ExpenseInput {
 export interface Expense extends ExpenseInput {
   unit_price: number; // Derived: total_price / quantity
   created_at: string; // ISO datetime
+  row_index?: number; // 1-based row in Sheet1, returned on append, used for undo
 }
