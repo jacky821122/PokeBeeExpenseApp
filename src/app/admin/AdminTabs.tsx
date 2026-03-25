@@ -50,13 +50,15 @@ function buildCategoryStats(expenses: Expense[]) {
 }
 
 function buildItemStats(expenses: Expense[]) {
-  const map: Record<string, number> = {};
+  const map: Record<string, { category: string; total: number }> = {};
   for (const e of expenses) {
-    map[e.item] = (map[e.item] ?? 0) + e.total_price;
+    if (!map[e.item]) map[e.item] = { category: e.category, total: 0 };
+    map[e.item].total += e.total_price;
   }
   return Object.entries(map)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 10)
+    .map(([item, { category, total }]) => ({ item, category, total }));
 }
 
 function buildSupplierStats(expenses: Expense[]) {
@@ -152,14 +154,16 @@ function StatsTab({ expenses }: { expenses: Expense[] }) {
           <thead>
             <tr className="border-b text-left text-gray-500">
               <th className="pb-1 pr-4">品項</th>
+              <th className="pb-1 pr-4">類別</th>
               <th className="pb-1 text-right">合計</th>
             </tr>
           </thead>
           <tbody>
-            {byItem.map(([item, amt]) => (
+            {byItem.map(({ item, category, total }) => (
               <tr key={item} className="border-b border-gray-100">
                 <td className="py-1.5 pr-4">{item}</td>
-                <td className="py-1.5 text-right">{formatMoney(amt)}</td>
+                <td className="py-1.5 pr-4 text-gray-500">{category}</td>
+                <td className="py-1.5 text-right">{formatMoney(total)}</td>
               </tr>
             ))}
           </tbody>
