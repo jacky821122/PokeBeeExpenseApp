@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ExpenseForm from "@/components/ExpenseForm";
 import RecentEntries from "@/components/RecentEntries";
+import StatsView from "@/components/StatsView";
 import type { Expense } from "@/types/expense";
 
 export type UndoableEntry = {
@@ -31,11 +32,22 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<"record" | "stats">("record");
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(true);
   const [showRecent, setShowRecent] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [undoable, setUndoable] = useState<UndoableEntry[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  // Fetch expenses for stats tab
+  useEffect(() => {
+    if (activeTab !== "stats") return;
+    fetch("/api/expenses")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setExpenses)
+      .catch(() => {});
+  }, [activeTab, refreshKey]);
 
   function handleRefresh() {
     if (refreshing) return;
@@ -52,7 +64,6 @@ export default function Home() {
         item: expense.item,
       };
       setUndoable((prev) => [...prev, entry]);
-      // Auto-expire after 15 minutes
       setTimeout(() => {
         setUndoable((prev) => prev.filter((e) => e.created_at !== entry.created_at));
       }, 15 * 60 * 1000);
@@ -83,64 +94,87 @@ export default function Home() {
 
   return (
     <main className="mx-auto w-full max-w-lg px-4 py-6">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 text-left"
-        >
-          <h1 className="text-xl font-bold">記錄支出</h1>
-          <ChevronIcon open={showForm} />
-        </button>
-
-        <button
-          onClick={handleRefresh}
-          title="重新整理"
-          className={`rounded-full p-2 transition-colors ${
-            refreshing
-              ? "text-blue-500"
-              : "text-gray-400 active:bg-gray-100 active:text-gray-600"
-          }`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={refreshing ? "animate-spin" : ""}
+      {/* Page-level tab switcher */}
+      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
+        {(["record", "stats"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+              activeTab === tab
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-            <path d="M21 3v5h-5" />
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-            <path d="M8 16H3v5" />
-          </svg>
-        </button>
+            {tab === "record" ? "記錄" : "統計"}
+          </button>
+        ))}
       </div>
 
-      {showForm && <ExpenseForm onSuccess={handleSuccess} />}
+      {activeTab === "record" ? (
+        <>
+          {/* Header */}
+          <div className="mb-6 flex items-center justify-between">
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="flex items-center gap-2 text-left"
+            >
+              <h1 className="text-xl font-bold">記錄支出</h1>
+              <ChevronIcon open={showForm} />
+            </button>
 
-      <hr className="my-8 border-gray-200" />
+            <button
+              onClick={handleRefresh}
+              title="重新整理"
+              className={`rounded-full p-2 transition-colors ${
+                refreshing
+                  ? "text-blue-500"
+                  : "text-gray-400 active:bg-gray-100 active:text-gray-600"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={refreshing ? "animate-spin" : ""}
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+            </button>
+          </div>
 
-      {/* Collapsible recent entries */}
-      <button
-        onClick={() => setShowRecent((v) => !v)}
-        className="mb-4 flex w-full items-center justify-between text-left"
-      >
-        <h2 className="text-lg font-semibold">最近記錄</h2>
-        <ChevronIcon open={showRecent} />
-      </button>
+          {showForm && <ExpenseForm onSuccess={handleSuccess} />}
 
-      {showRecent && (
-        <RecentEntries
-          refreshKey={refreshKey}
-          undoable={undoable}
-          onUndo={handleUndo}
-        />
+          <hr className="my-8 border-gray-200" />
+
+          {/* Collapsible recent entries */}
+          <button
+            onClick={() => setShowRecent((v) => !v)}
+            className="mb-4 flex w-full items-center justify-between text-left"
+          >
+            <h2 className="text-lg font-semibold">最近記錄</h2>
+            <ChevronIcon open={showRecent} />
+          </button>
+
+          {showRecent && (
+            <RecentEntries
+              refreshKey={refreshKey}
+              undoable={undoable}
+              onUndo={handleUndo}
+            />
+          )}
+        </>
+      ) : (
+        <StatsView expenses={expenses} />
       )}
     </main>
   );
