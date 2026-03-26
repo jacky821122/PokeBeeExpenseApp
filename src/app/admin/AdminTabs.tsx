@@ -325,14 +325,53 @@ interface AdminTabsProps {
   initialItems: Record<string, string[]>;
 }
 
+function EmbedPreview({ expenses }: { expenses: Expense[] }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="mx-auto w-full max-w-lg rounded-xl border-2 border-dashed border-gray-300 bg-white p-4">
+      <p className="mb-4 text-center text-xs text-gray-400">── 主頁嵌入預覽 (max-w-lg) ──</p>
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="mb-4 flex w-full items-center justify-between text-left"
+      >
+        <h2 className="text-lg font-semibold">統計</h2>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && <StatsTab expenses={expenses} />}
+    </div>
+  );
+}
+
+const TAB_LABELS: Record<string, string> = {
+  stats: "統計",
+  items: "品項管理",
+  preview: "嵌入預覽",
+};
+
 export default function AdminTabs({ secretKey, expenses, initialItems }: AdminTabsProps) {
-  const [activeTab, setActiveTab] = useState<"stats" | "items">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "items" | "preview">("stats");
 
   return (
     <div>
       {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
-        {(["stats", "items"] as const).map((tab) => (
+        {(["stats", "items", "preview"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -342,15 +381,17 @@ export default function AdminTabs({ secretKey, expenses, initialItems }: AdminTa
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {tab === "stats" ? "統計" : "品項管理"}
+            {TAB_LABELS[tab]}
           </button>
         ))}
       </div>
 
       {activeTab === "stats" ? (
         <StatsTab expenses={expenses} />
-      ) : (
+      ) : activeTab === "items" ? (
         <ItemsTab secretKey={secretKey} initialItems={initialItems} />
+      ) : (
+        <EmbedPreview expenses={expenses} />
       )}
     </div>
   );
