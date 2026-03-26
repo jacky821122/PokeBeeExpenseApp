@@ -325,35 +325,102 @@ interface AdminTabsProps {
   initialItems: Record<string, string[]>;
 }
 
+function MockRecordTab({ expenses }: { expenses: Expense[] }) {
+  const recent = expenses.slice(0, 15);
+  const inputClass = "w-full rounded-lg border border-gray-300 px-4 py-3 text-base text-gray-400 bg-gray-50";
+
+  return (
+    <div className="space-y-6">
+      {/* Mock form */}
+      <div>
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold">記錄支出</h2>
+          <span className="text-xs text-gray-400">(preview)</span>
+        </div>
+        <div className="space-y-3 opacity-60">
+          <input className={inputClass} value="2026-03-26" readOnly />
+          <input className={inputClass} value="菜" readOnly />
+          <input className={inputClass} value="花椰菜" readOnly />
+          <div className="grid grid-cols-2 gap-3">
+            <input className={inputClass} value="2" readOnly />
+            <input className={inputClass} value="斤" readOnly />
+          </div>
+          <input className={inputClass} value="120" readOnly />
+          <button className="w-full rounded-lg bg-gray-400 py-4 text-lg font-semibold text-white" disabled>
+            送出
+          </button>
+        </div>
+      </div>
+
+      <hr className="border-gray-200" />
+
+      {/* Real recent entries (read-only) */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold">最近記錄</h2>
+        {recent.length === 0 ? (
+          <p className="py-4 text-center text-sm text-gray-400">尚無記錄</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-2 pr-3">日期</th>
+                  <th className="pb-2 pr-3">類別</th>
+                  <th className="pb-2 pr-3">品項</th>
+                  <th className="pb-2 pr-3 text-right">數量</th>
+                  <th className="pb-2 pr-3">單位</th>
+                  <th className="pb-2 text-right">總價</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((e, i) => (
+                  <tr key={i} className="border-b border-gray-100">
+                    <td className="py-2 pr-3 whitespace-nowrap">{e.date}</td>
+                    <td className="py-2 pr-3">{e.category}</td>
+                    <td className="py-2 pr-3">{e.item}</td>
+                    <td className="py-2 pr-3 text-right">{e.quantity}</td>
+                    <td className="py-2 pr-3">{e.unit}</td>
+                    <td className="py-2 text-right">{e.total_price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EmbedPreview({ expenses }: { expenses: Expense[] }) {
-  const [open, setOpen] = useState(true);
+  const [previewTab, setPreviewTab] = useState<"record" | "stats">("record");
 
   return (
     <div className="mx-auto w-full max-w-lg rounded-xl border-2 border-dashed border-gray-300 bg-white p-4">
       <p className="mb-4 text-center text-xs text-gray-400">── 主頁嵌入預覽 (max-w-lg) ──</p>
 
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="mb-4 flex w-full items-center justify-between text-left"
-      >
-        <h2 className="text-lg font-semibold">統計</h2>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
+      {/* Page-level tab switcher */}
+      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
+        {(["record", "stats"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setPreviewTab(tab)}
+            className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+              previewTab === tab
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {tab === "record" ? "記錄" : "統計"}
+          </button>
+        ))}
+      </div>
 
-      {open && <StatsTab expenses={expenses} />}
+      {previewTab === "record" ? (
+        <MockRecordTab expenses={expenses} />
+      ) : (
+        <StatsTab expenses={expenses} />
+      )}
     </div>
   );
 }
