@@ -150,6 +150,7 @@ export default function StatsView({ expenses }: { expenses: Expense[] }) {
                 outerRadius={110}
                 paddingAngle={2}
                 dataKey="value"
+              animationDuration={750}
               >
                 {byCategory.map((_, i) => (
                   <Cell
