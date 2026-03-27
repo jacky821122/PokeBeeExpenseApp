@@ -164,7 +164,13 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const totalPriceInputRef = useRef<HTMLInputElement>(null);
   const pendingReplaceOnBlurRef = useRef<boolean | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastValidResultRef = useRef<number | null>(null);
   const totalPriceValue = evaluateExpression(totalPriceInput);
+  if (totalPriceInput === "") {
+    lastValidResultRef.current = null;
+  } else if (totalPriceValue !== null) {
+    lastValidResultRef.current = totalPriceValue;
+  }
 
   useEffect(() => {
     setSupplierOptions(getCachedValues("supplier"));
@@ -450,19 +456,47 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         {calculatorOpen && (
           <>
             <p className="mt-1 h-5 text-right text-sm text-gray-500">
-              = {totalPriceValue !== null ? totalPriceValue : ""}
+              = {lastValidResultRef.current !== null ? lastValidResultRef.current : ""}
             </p>
-            <div className="mt-1 grid grid-cols-4 gap-1.5">
+            <div
+              className="mt-1 gap-1.5"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gridTemplateRows: "repeat(5, auto)",
+                gridTemplateAreas: `
+                  "back clear div mul"
+                  "n7   n8    n9  minus"
+                  "n4   n5    n6  plus"
+                  "n1   n2    n3  plus"
+                  "dot  n0    eq  eq"
+                `,
+              }}
+            >
               {[
-                "(", ")", "←", "C",
-                "7", "8", "9", "/",
-                "4", "5", "6", "*",
-                "1", "2", "3", "-",
-                ".", "0", "+", "=",
-              ].map((key) => (
+                { key: "←", area: "back" },
+                { key: "C", area: "clear" },
+                { key: "/", area: "div" },
+                { key: "*", area: "mul" },
+                { key: "7", area: "n7" },
+                { key: "8", area: "n8" },
+                { key: "9", area: "n9" },
+                { key: "-", area: "minus" },
+                { key: "4", area: "n4" },
+                { key: "5", area: "n5" },
+                { key: "6", area: "n6" },
+                { key: "+", area: "plus" },
+                { key: "1", area: "n1" },
+                { key: "2", area: "n2" },
+                { key: "3", area: "n3" },
+                { key: ".", area: "dot" },
+                { key: "0", area: "n0" },
+                { key: "=", area: "eq" },
+              ].map(({ key, area }) => (
                 <button
                   key={key}
                   type="button"
+                  style={{ gridArea: area }}
                   onPointerDown={(e) => {
                     e.preventDefault();
                     pointerStartRef.current = { x: e.clientX, y: e.clientY };
