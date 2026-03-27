@@ -433,6 +433,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
             })();
             setReplaceOnNextInput(shouldReplace);
             setTimeout(() => {
+              if (!isDesktop) return;
               const active = document.activeElement;
               if (totalPriceAreaRef.current && active && !totalPriceAreaRef.current.contains(active)) {
                 setCalculatorOpen(false);
