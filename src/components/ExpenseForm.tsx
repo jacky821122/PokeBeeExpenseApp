@@ -211,6 +211,15 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
     };
   }, []);
 
+  function applyCalculatedTotal() {
+    if (totalPriceValue !== null && totalPriceValue >= 0) {
+      setTotalPriceInput(String(totalPriceValue));
+      setCalculatorOpen(false);
+      return true;
+    }
+    return false;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
@@ -399,35 +408,37 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           onChange={(e) => {
             if (isDesktop) setTotalPriceInput(e.target.value);
           }}
-          onFocus={() => {
-            if (!isDesktop) setCalculatorOpen(true);
+          onFocus={() => setCalculatorOpen(true)}
+          onKeyDown={(e) => {
+            if (isDesktop && e.key === "Enter") {
+              e.preventDefault();
+              applyCalculatedTotal();
+            }
           }}
           placeholder="可輸入 120+95*2"
           className={inputClass}
           required
         />
         {calculatorOpen && (
-          <div className="mt-2 grid grid-cols-5 gap-1.5">
+          <div className="mt-2 grid grid-cols-4 gap-1.5">
             {[
+              { key: "⌫" },
               { key: "C" },
-              { key: "(" },
-              { key: ")" },
               { key: "/", span: 2 },
               { key: "7" },
               { key: "8" },
               { key: "9" },
-              { key: "*", span: 2 },
+              { key: "*" },
               { key: "4" },
               { key: "5" },
               { key: "6" },
-              { key: "-", span: 2 },
+              { key: "-" },
               { key: "1" },
               { key: "2" },
               { key: "3" },
-              { key: "+", span: 2 },
+              { key: "+" },
               { key: "." },
               { key: "0" },
-              { key: "⌫" },
               { key: "=", span: 2 },
             ].map(({ key, span }) => (
               <button
@@ -443,10 +454,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
                     return;
                   }
                   if (key === "=") {
-                    if (totalPriceValue !== null && totalPriceValue >= 0) {
-                      setTotalPriceInput(String(totalPriceValue));
-                      setCalculatorOpen(false);
-                    }
+                    applyCalculatedTotal();
                     return;
                   }
                   setTotalPriceInput((current) => `${current}${key}`);
