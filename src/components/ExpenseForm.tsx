@@ -158,6 +158,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, readonly string[]>>(ITEMS_BY_CATEGORY);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const totalPriceAreaRef = useRef<HTMLDivElement>(null);
   const totalPriceValue = evaluateExpression(totalPriceInput);
 
@@ -186,6 +187,14 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         }
       })
       .catch(() => {}); // Keep constants fallback on failure
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const handleMediaChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    setIsDesktop(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleMediaChange);
+    return () => mediaQuery.removeEventListener("change", handleMediaChange);
   }, []);
 
   useEffect(() => {
@@ -384,23 +393,43 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </div>
         <input
           type="text"
-          inputMode="none"
-          readOnly
+          inputMode={isDesktop ? "decimal" : "none"}
+          readOnly={!isDesktop}
           value={totalPriceInput}
-          onFocus={() => setCalculatorOpen(true)}
+          onChange={(e) => {
+            if (isDesktop) setTotalPriceInput(e.target.value);
+          }}
+          onFocus={() => {
+            if (!isDesktop) setCalculatorOpen(true);
+          }}
           placeholder="可輸入 120+95*2"
           className={inputClass}
           required
         />
         {calculatorOpen && (
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
+          <div className="mt-2 grid grid-cols-5 gap-1.5">
             {[
-              "7", "8", "9", "/",
-              "4", "5", "6", "*",
-              "1", "2", "3", "-",
-              "0", ".", "(", ")",
-              "C", "⌫", "+", "=",
-            ].map((key) => (
+              { key: "C" },
+              { key: "(" },
+              { key: ")" },
+              { key: "/", span: 2 },
+              { key: "7" },
+              { key: "8" },
+              { key: "9" },
+              { key: "*", span: 2 },
+              { key: "4" },
+              { key: "5" },
+              { key: "6" },
+              { key: "-", span: 2 },
+              { key: "1" },
+              { key: "2" },
+              { key: "3" },
+              { key: "+", span: 2 },
+              { key: "." },
+              { key: "0" },
+              { key: "⌫" },
+              { key: "=", span: 2 },
+            ].map(({ key, span }) => (
               <button
                 key={key}
                 type="button"
@@ -422,7 +451,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
                   }
                   setTotalPriceInput((current) => `${current}${key}`);
                 }}
-                className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${
+                className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${span === 2 ? "col-span-2" : ""} ${
                   key === "="
                     ? "border-amber-400 bg-amber-100 font-semibold text-amber-800"
                     : "border-amber-200 text-gray-700"
