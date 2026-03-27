@@ -162,6 +162,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [replaceOnNextInput, setReplaceOnNextInput] = useState(false);
   const totalPriceAreaRef = useRef<HTMLDivElement>(null);
   const totalPriceInputRef = useRef<HTMLInputElement>(null);
+  const pendingReplaceOnBlurRef = useRef<boolean | null>(null);
   const totalPriceValue = evaluateExpression(totalPriceInput);
 
   useEffect(() => {
@@ -200,11 +201,12 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   }, []);
 
   function applyCalculatedTotal() {
-    if (totalPriceValue !== null && totalPriceValue >= 0) {
-      setTotalPriceInput(String(totalPriceValue));
-    }
+    const isValidTotal = totalPriceValue !== null && totalPriceValue >= 0;
+    if (isValidTotal) setTotalPriceInput(String(totalPriceValue));
+    pendingReplaceOnBlurRef.current = isValidTotal;
+    setReplaceOnNextInput(isValidTotal);
     setCalculatorOpen(false);
-    setReplaceOnNextInput(true);
+    totalPriceInputRef.current?.blur();
   }
 
   function appendCalculatorKey(key: string) {
@@ -423,7 +425,13 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
             }
           }}
           onBlur={() => {
-            setReplaceOnNextInput(true);
+            const pendingReplace = pendingReplaceOnBlurRef.current;
+            pendingReplaceOnBlurRef.current = null;
+            const shouldReplace = pendingReplace ?? (() => {
+              const parsed = evaluateExpression(totalPriceInput);
+              return parsed !== null && parsed >= 0;
+            })();
+            setReplaceOnNextInput(shouldReplace);
             setTimeout(() => {
               const active = document.activeElement;
               if (totalPriceAreaRef.current && active && !totalPriceAreaRef.current.contains(active)) {
