@@ -55,6 +55,16 @@ When building UI previews (e.g. in admin), render every UI element from the real
 
 Include: collapsible chevrons, filter pills, refresh button, undo buttons, quantity quick-pick buttons, etc.
 
+## Modify theme colors
+
+Theme uses Tailwind's `amber-*` classes throughout all components. The actual color values are overridden in `src/app/globals.css` via `@theme` (cream/butter yellow palette, not Tailwind default amber).
+
+To adjust colors: edit the `@theme` block in `globals.css`. No component class names need changing.
+
+Also update:
+- `PIE_COLORS` in `src/components/StatsView.tsx` (hex values for chart colors at index 2 and 6)
+- `public/manifest.json` → `theme_color`
+
 ## Constraints
 
 - **Heterogeneous units**: mix of weight (斤/公克), count (個/顆), packaging (包/組/份). unit_price is NOT comparable across items. Do not build unit-price rankings.
