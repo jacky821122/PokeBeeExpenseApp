@@ -125,8 +125,8 @@ export default function StatsView({ expenses }: { expenses: Expense[] }) {
             onClick={() => setActiveFilter(f.value)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               activeFilter === f.value
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 active:bg-gray-200"
+                ? "bg-amber-500 text-white"
+                : "bg-amber-100/60 text-amber-700 active:bg-amber-200"
             }`}
           >
             {f.label}

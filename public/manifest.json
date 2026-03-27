@@ -3,8 +3,8 @@
   "short_name": "支出記錄",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#2563eb",
+  "background_color": "#fafaf9",
+  "theme_color": "#f59e0b",
   "icons": [
     {
       "src": "/icon-192.png",

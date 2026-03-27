@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import StatsView from "@/components/StatsView";
-import { WarmPreview, CleanPreview } from "@/components/ThemePreview";
 import type { Expense } from "@/types/expense";
 
 // ─── Items Tab ───────────────────────────────────────────────────
@@ -140,8 +139,6 @@ interface AdminTabsProps {
 const TAB_LABELS: Record<string, string> = {
   stats: "統計",
   items: "品項管理",
-  warm: "Warm 預覽",
-  clean: "Clean 預覽",
 };
 
 type TabKey = keyof typeof TAB_LABELS;
@@ -170,12 +167,8 @@ export default function AdminTabs({ secretKey, expenses, initialItems }: AdminTa
 
       {activeTab === "stats" ? (
         <StatsView expenses={expenses} />
-      ) : activeTab === "items" ? (
-        <ItemsTab secretKey={secretKey} initialItems={initialItems} />
-      ) : activeTab === "warm" ? (
-        <WarmPreview expenses={expenses} />
       ) : (
-        <CleanPreview expenses={expenses} />
+        <ItemsTab secretKey={secretKey} initialItems={initialItems} />
       )}
     </div>
   );

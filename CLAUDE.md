@@ -26,7 +26,7 @@ Current sections (in order):
 3. Top 10 items by total spend — table (item | category | total)
 4. Top suppliers — table (supplier | total)
 
-Stats logic: `build*()` helpers in same file. Add section = add helper + `<section>` in `StatsTab`.
+Stats logic: `build*()` helpers in `src/components/StatsView.tsx`. Add section = add helper + `<section>` in `StatsView`.
 
 ## Modify expense form
 
@@ -48,6 +48,12 @@ Undo button: session-bound, 15-min window, matched by `created_at`.
 
 Path: `src/app/api/{name}/route.ts`. Sheets I/O in `src/lib/sheets.ts`.
 Admin-only routes: check `Authorization: Bearer $STATS_SECRET`.
+
+## Building previews
+
+When building UI previews (e.g. in admin), render every UI element from the real page. Functionality can be omitted (disabled/static), but the element must be visually present. User cannot distinguish "design removed this" from "preview skipped this" if it's absent. If visible but non-functional, user correctly infers preview limitation.
+
+Include: collapsible chevrons, filter pills, refresh button, undo buttons, quantity quick-pick buttons, etc.
 
 ## Constraints
 

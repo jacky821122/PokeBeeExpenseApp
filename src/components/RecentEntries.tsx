@@ -76,8 +76,8 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
             onClick={() => setActiveFilter(f.value)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               activeFilter === f.value
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 active:bg-gray-200"
+                ? "bg-amber-500 text-white"
+                : "bg-amber-100/60 text-amber-700 active:bg-amber-200"
             }`}
           >
             {f.label}
@@ -87,7 +87,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
 
       {/* Monthly summary */}
       {monthTotal !== null && !loading && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-2 text-sm text-gray-600">
+        <div className="mb-4 flex items-center gap-3 rounded-lg bg-amber-50/40 px-4 py-2 text-sm text-gray-600">
           <span>共 {filtered.length} 筆</span>
           <span className="text-gray-300">|</span>
           <span className="font-medium text-gray-800">
@@ -118,7 +118,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
               {filtered.map((e, i) => {
                 const canUndo = undoableSet.has(e.created_at);
                 return (
-                  <tr key={i} className="border-b border-gray-100">
+                  <tr key={i} className={`border-b border-gray-100 ${i % 2 === 1 ? "bg-amber-50/40" : ""}`}>
                     <td className="py-2 pr-3 whitespace-nowrap">{e.date}</td>
                     <td className="py-2 pr-3">{e.category}</td>
                     <td className="py-2 pr-3">{e.item}</td>

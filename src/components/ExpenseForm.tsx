@@ -64,7 +64,7 @@ function Combobox({ value, onChange, options, placeholder, inputClass }: Combobo
                 onChange(o);
                 setOpen(false);
               }}
-              className="cursor-pointer px-4 py-3 text-base hover:bg-blue-50 active:bg-blue-100"
+              className="cursor-pointer px-4 py-3 text-base hover:bg-amber-50 active:bg-amber-100"
             >
               {o}
             </li>
@@ -188,7 +188,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   }
 
   const inputClass =
-    "min-w-0 w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
+    "min-w-0 w-full rounded-xl border border-amber-200 bg-amber-50/30 px-4 py-3 text-base focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
@@ -280,7 +280,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
             key={label}
             type="button"
             onClick={action}
-            className="rounded-lg border border-gray-300 py-2 text-sm text-gray-600 active:bg-gray-100"
+            className="rounded-lg border border-amber-200 py-2 text-sm text-gray-600 active:bg-amber-50"
           >
             {label}
           </button>
@@ -346,7 +346,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-blue-600 py-4 text-lg font-semibold text-white active:bg-blue-700 disabled:bg-gray-400"
+        className="w-full rounded-xl bg-amber-500 py-4 text-lg font-semibold text-white active:bg-amber-600 disabled:bg-gray-400"
       >
         {submitting ? "儲存中..." : "送出"}
       </button>

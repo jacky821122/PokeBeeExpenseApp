@@ -93,89 +93,101 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-lg px-4 py-6">
-      {/* Page-level tab switcher */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
-        {(["record", "stats"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab === "record" ? "記錄" : "統計"}
-          </button>
-        ))}
+    <div className="min-h-dvh">
+      {/* Amber header */}
+      <div className="bg-amber-500 px-4 py-3 flex items-center gap-3">
+        <span className="text-2xl">🐝</span>
+        <h1 className="text-lg font-bold text-white">pokebee 支出記錄</h1>
       </div>
 
-      {activeTab === "record" ? (
-        <>
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
+      <main className="mx-auto w-full max-w-lg px-4 py-5">
+        {/* Tab switcher */}
+        <div className="mb-5 flex gap-1 rounded-xl bg-amber-100/60 p-1">
+          {(["record", "stats"] as const).map((tab) => (
             <button
-              onClick={() => setShowForm((v) => !v)}
-              className="flex items-center gap-2 text-left"
-            >
-              <h1 className="text-xl font-bold">記錄支出</h1>
-              <ChevronIcon open={showForm} />
-            </button>
-
-            <button
-              onClick={handleRefresh}
-              title="重新整理"
-              className={`rounded-full p-2 transition-colors ${
-                refreshing
-                  ? "text-blue-500"
-                  : "text-gray-400 active:bg-gray-100 active:text-gray-600"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? "bg-white text-amber-700 shadow-sm"
+                  : "text-amber-600/60 hover:text-amber-700"
               }`}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={refreshing ? "animate-spin" : ""}
-              >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M8 16H3v5" />
-              </svg>
+              {tab === "record" ? "記錄" : "統計"}
             </button>
+          ))}
+        </div>
+
+        {activeTab === "record" ? (
+          <div className="space-y-5">
+            {/* Form card */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <button
+                  onClick={() => setShowForm((v) => !v)}
+                  className="flex items-center gap-2 text-left"
+                >
+                  <h2 className="text-lg font-semibold text-gray-800">記錄支出</h2>
+                  <ChevronIcon open={showForm} />
+                </button>
+
+                <button
+                  onClick={handleRefresh}
+                  title="重新整理"
+                  className={`rounded-full p-2 transition-colors ${
+                    refreshing
+                      ? "text-amber-500"
+                      : "text-gray-400 active:bg-gray-100 active:text-gray-600"
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={refreshing ? "animate-spin" : ""}
+                  >
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                    <path d="M8 16H3v5" />
+                  </svg>
+                </button>
+              </div>
+
+              {showForm && <ExpenseForm onSuccess={handleSuccess} />}
+            </div>
+
+            {/* Recent entries card */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <button
+                onClick={() => setShowRecent((v) => !v)}
+                className="mb-4 flex w-full items-center justify-between text-left"
+              >
+                <h2 className="text-lg font-semibold text-gray-800">最近記錄</h2>
+                <ChevronIcon open={showRecent} />
+              </button>
+
+              {showRecent && (
+                <RecentEntries
+                  refreshKey={refreshKey}
+                  undoable={undoable}
+                  onUndo={handleUndo}
+                />
+              )}
+            </div>
           </div>
-
-          {showForm && <ExpenseForm onSuccess={handleSuccess} />}
-
-          <hr className="my-8 border-gray-200" />
-
-          {/* Collapsible recent entries */}
-          <button
-            onClick={() => setShowRecent((v) => !v)}
-            className="mb-4 flex w-full items-center justify-between text-left"
-          >
-            <h2 className="text-lg font-semibold">最近記錄</h2>
-            <ChevronIcon open={showRecent} />
-          </button>
-
-          {showRecent && (
-            <RecentEntries
-              refreshKey={refreshKey}
-              undoable={undoable}
-              onUndo={handleUndo}
-            />
-          )}
-        </>
-      ) : (
-        <StatsView expenses={expenses} />
-      )}
-    </main>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <StatsView expenses={expenses} />
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
