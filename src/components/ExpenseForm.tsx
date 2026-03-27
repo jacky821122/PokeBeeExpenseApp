@@ -13,6 +13,22 @@ function getTodayString() {
   return `${y}-${m}-${d}`;
 }
 
+function evaluateExpression(raw: string): number | null {
+  const expression = raw.replace(/\s+/g, "");
+  if (!expression) return null;
+  if (!/^[\d+\-*/().]+$/.test(expression)) return null;
+
+  try {
+    const result = Function(`"use strict"; return (${expression});`)();
+    if (typeof result !== "number" || Number.isNaN(result) || !Number.isFinite(result)) {
+      return null;
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 interface ComboboxProps {
   value: string;
   onChange: (v: string) => void;
@@ -86,6 +102,9 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState<string>(UNITS[0]);
   const [totalPrice, setTotalPrice] = useState("");
+  const [showDesktopCalculator, setShowDesktopCalculator] = useState(false);
+  const [showMobileCalculatorModal, setShowMobileCalculatorModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [supplier, setSupplier] = useState("");
   const [purchaser, setPurchaser] = useState("");
   const [note, setNote] = useState("");
@@ -124,9 +143,24 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       .catch(() => {}); // Keep constants fallback on failure
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const updateMobileState = () => setIsMobile(media.matches);
+    updateMobileState();
+    media.addEventListener("change", updateMobileState);
+    return () => media.removeEventListener("change", updateMobileState);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
+
+    const calculatedTotal = evaluateExpression(totalPrice);
+    if (calculatedTotal === null || calculatedTotal < 0) {
+      setToast("總價請輸入有效數字或算式");
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
 
     setSubmitting(true);
     setToast(null);
@@ -141,7 +175,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           item: item.trim(),
           quantity: Number(quantity),
           unit,
-          total_price: Number(totalPrice),
+          total_price: calculatedTotal,
           supplier: supplier.trim(),
           purchaser: purchaser.trim(),
           note: note.trim(),
@@ -190,6 +224,86 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const inputClass =
     "min-w-0 w-full rounded-xl border border-amber-200 bg-amber-50/30 px-4 py-3 text-base focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  const calculatorButtons = [
+    ["7", "8", "9", "÷"],
+    ["4", "5", "6", "×"],
+    ["1", "2", "3", "-"],
+    ["0", ".", "(", ")"],
+  ];
+  const totalPreview = evaluateExpression(totalPrice);
+
+  function appendCalculatorValue(v: string) {
+    const mapped = v === "÷" ? "/" : v === "×" ? "*" : v;
+    setTotalPrice((prev) => prev + mapped);
+  }
+
+  function CalculatorPanel({ compact = false }: { compact?: boolean }) {
+    return (
+      <div className={`rounded-xl border border-amber-200 bg-white p-3 ${compact ? "" : "shadow-sm"}`}>
+        <div className="grid gap-1.5">
+          {calculatorButtons.map((row, rowIndex) => (
+            <div key={rowIndex} className="grid grid-cols-4 gap-1.5">
+              {row.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => appendCalculatorValue(key)}
+                  className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-gray-700 active:bg-amber-100"
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTotalPrice((prev) => prev.slice(0, -1))}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 active:bg-gray-100"
+          >
+            ⌫
+          </button>
+          <button
+            type="button"
+            onClick={() => setTotalPrice("")}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 active:bg-gray-100"
+          >
+            C
+          </button>
+          <button
+            type="button"
+            onClick={() => appendCalculatorValue("+")}
+            className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-gray-700 active:bg-amber-100"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (totalPreview !== null) {
+                setTotalPrice(String(totalPreview));
+                setShowMobileCalculatorModal(false);
+                setShowDesktopCalculator(false);
+              }
+            }}
+            className="rounded-lg border border-amber-200 bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-800 active:bg-amber-300"
+          >
+            =
+          </button>
+        </div>
+
+        <p className="mt-2 text-right text-sm text-gray-600">
+          {totalPrice.trim() === ""
+            ? "結果：0"
+            : totalPreview === null
+              ? "結果：請輸入正確算式"
+              : `結果：${totalPreview}`}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -291,16 +405,36 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       <div>
         <label className={labelClass}>總價</label>
         <input
-          type="number"
-          inputMode="decimal"
+          type="text"
+          inputMode={isMobile ? "none" : "decimal"}
           value={totalPrice}
           onChange={(e) => setTotalPrice(e.target.value)}
+          onFocus={() => {
+            if (isMobile) {
+              setShowMobileCalculatorModal(true);
+            }
+          }}
+          readOnly={isMobile}
           placeholder="0"
-          min="0"
-          step="any"
           className={inputClass}
           required
         />
+        {!isMobile && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowDesktopCalculator((v) => !v)}
+              className="rounded-lg border border-amber-200 px-3 py-2 text-sm text-gray-600 active:bg-amber-50"
+            >
+              {showDesktopCalculator ? "收合計算機" : "展開計算機"}
+            </button>
+            {showDesktopCalculator && (
+              <div className="mt-2">
+                <CalculatorPanel />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Optional fields */}
@@ -361,6 +495,24 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           }`}
         >
           {toast}
+        </div>
+      )}
+
+      {isMobile && showMobileCalculatorModal && (
+        <div className="fixed inset-0 z-30 bg-black/40 p-4">
+          <div className="mx-auto mt-10 w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-800">總價計算機</h3>
+              <button
+                type="button"
+                onClick={() => setShowMobileCalculatorModal(false)}
+                className="rounded-md px-2 py-1 text-sm text-gray-500 active:bg-gray-100"
+              >
+                關閉
+              </button>
+            </div>
+            <CalculatorPanel compact />
+          </div>
         </div>
       )}
     </form>
