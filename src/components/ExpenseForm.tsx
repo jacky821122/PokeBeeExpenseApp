@@ -157,6 +157,8 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
   const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, readonly string[]>>(ITEMS_BY_CATEGORY);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const totalPriceAreaRef = useRef<HTMLDivElement>(null);
   const totalPriceValue = evaluateExpression(totalPriceInput);
 
   useEffect(() => {
@@ -184,6 +186,20 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         }
       })
       .catch(() => {}); // Keep constants fallback on failure
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
+      if (totalPriceAreaRef.current && !totalPriceAreaRef.current.contains(e.target as Node)) {
+        setCalculatorOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -354,58 +370,69 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       </div>
 
       {/* Total Price */}
-      <div>
-        <label className={labelClass}>總價</label>
+      <div ref={totalPriceAreaRef}>
+        <div className="mb-1 flex items-center justify-between">
+          <label className={labelClass + " mb-0"}>總價</label>
+          <button
+            type="button"
+            onClick={() => setCalculatorOpen((open) => !open)}
+            className="rounded-md border border-amber-200 px-2 py-1 text-xs text-gray-600 active:bg-amber-50"
+            aria-label={calculatorOpen ? "收合計算機" : "展開計算機"}
+          >
+            {calculatorOpen ? "▾ 計算機" : "▸ 計算機"}
+          </button>
+        </div>
         <input
           type="text"
-          inputMode="decimal"
+          inputMode="none"
+          readOnly
           value={totalPriceInput}
-          onChange={(e) => setTotalPriceInput(e.target.value)}
+          onFocus={() => setCalculatorOpen(true)}
           placeholder="可輸入 120+95*2"
           className={inputClass}
           required
         />
-        <p className="mt-1 text-xs text-gray-500">
-          可直接輸入 + - × ÷（例如：89+95+120*2）
-        </p>
-        <div className="mt-2 grid grid-cols-4 gap-1.5">
-          {[
-            "7", "8", "9", "/",
-            "4", "5", "6", "*",
-            "1", "2", "3", "-",
-            "0", ".", "(", ")",
-          ].map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTotalPriceInput((current) => `${current}${key}`)}
-              className="rounded-lg border border-amber-200 py-2 text-sm text-gray-700 active:bg-amber-50"
-            >
-              {key === "*" ? "×" : key === "/" ? "÷" : key}
-            </button>
-          ))}
-        </div>
-        <div className="mt-1 grid grid-cols-2 gap-1.5">
-          <button
-            type="button"
-            onClick={() => setTotalPriceInput((current) => current.slice(0, -1))}
-            className="rounded-lg border border-amber-200 py-2 text-sm text-gray-700 active:bg-amber-50"
-          >
-            退格
-          </button>
-          <button
-            type="button"
-            onClick={() => setTotalPriceInput("")}
-            className="rounded-lg border border-amber-200 py-2 text-sm text-gray-700 active:bg-amber-50"
-          >
-            清空
-          </button>
-        </div>
-        <p className={`mt-2 text-sm ${totalPriceValue === null || totalPriceValue < 0 ? "text-red-600" : "text-green-700"}`}>
-          {totalPriceValue === null || totalPriceValue < 0
-            ? "結果：請輸入有效算式"
-            : `結果：${totalPriceValue}`}
-        </p>
+        {calculatorOpen && (
+          <div className="mt-2 grid grid-cols-4 gap-1.5">
+            {[
+              "7", "8", "9", "/",
+              "4", "5", "6", "*",
+              "1", "2", "3", "-",
+              "0", ".", "(", ")",
+              "C", "⌫", "+", "=",
+            ].map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  if (key === "C") {
+                    setTotalPriceInput("");
+                    return;
+                  }
+                  if (key === "⌫") {
+                    setTotalPriceInput((current) => current.slice(0, -1));
+                    return;
+                  }
+                  if (key === "=") {
+                    if (totalPriceValue !== null && totalPriceValue >= 0) {
+                      setTotalPriceInput(String(totalPriceValue));
+                      setCalculatorOpen(false);
+                    }
+                    return;
+                  }
+                  setTotalPriceInput((current) => `${current}${key}`);
+                }}
+                className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${
+                  key === "="
+                    ? "border-amber-400 bg-amber-100 font-semibold text-amber-800"
+                    : "border-amber-200 text-gray-700"
+                }`}
+              >
+                {key === "*" ? "×" : key === "/" ? "÷" : key}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Optional fields */}
