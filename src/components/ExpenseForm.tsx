@@ -159,7 +159,9 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, readonly string[]>>(ITEMS_BY_CATEGORY);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [replaceOnNextInput, setReplaceOnNextInput] = useState(false);
   const totalPriceAreaRef = useRef<HTMLDivElement>(null);
+  const totalPriceInputRef = useRef<HTMLInputElement>(null);
   const totalPriceValue = evaluateExpression(totalPriceInput);
 
   useEffect(() => {
@@ -197,27 +199,20 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
     return () => mediaQuery.removeEventListener("change", handleMediaChange);
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent | TouchEvent) {
-      if (totalPriceAreaRef.current && !totalPriceAreaRef.current.contains(e.target as Node)) {
-        setCalculatorOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, []);
-
   function applyCalculatedTotal() {
     if (totalPriceValue !== null && totalPriceValue >= 0) {
       setTotalPriceInput(String(totalPriceValue));
-      setCalculatorOpen(false);
-      return true;
     }
-    return false;
+    setCalculatorOpen(false);
+    setReplaceOnNextInput(true);
+  }
+
+  function appendCalculatorKey(key: string) {
+    setTotalPriceInput((current) => {
+      if (replaceOnNextInput && /^[0-9.]$/.test(key)) return key;
+      return `${current}${key}`;
+    });
+    setReplaceOnNextInput(false);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -393,7 +388,11 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           <label className={labelClass + " mb-0"}>總價</label>
           <button
             type="button"
-            onClick={() => setCalculatorOpen((open) => !open)}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setCalculatorOpen((open) => !open);
+              totalPriceInputRef.current?.focus();
+            }}
             className="rounded-md border border-amber-200 px-2 py-1 text-xs text-gray-600 active:bg-amber-50"
             aria-label={calculatorOpen ? "收合計算機" : "展開計算機"}
           >
@@ -402,18 +401,35 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </div>
         <input
           type="text"
+          ref={totalPriceInputRef}
           inputMode={isDesktop ? "decimal" : "none"}
           readOnly={!isDesktop}
           value={totalPriceInput}
           onChange={(e) => {
             if (isDesktop) setTotalPriceInput(e.target.value);
+            setReplaceOnNextInput(false);
           }}
           onFocus={() => setCalculatorOpen(true)}
           onKeyDown={(e) => {
+            if (isDesktop && replaceOnNextInput && /^[0-9.]$/.test(e.key)) {
+              e.preventDefault();
+              setTotalPriceInput(e.key);
+              setReplaceOnNextInput(false);
+              return;
+            }
             if (isDesktop && e.key === "Enter") {
               e.preventDefault();
               applyCalculatedTotal();
             }
+          }}
+          onBlur={() => {
+            setReplaceOnNextInput(true);
+            setTimeout(() => {
+              const active = document.activeElement;
+              if (totalPriceAreaRef.current && active && !totalPriceAreaRef.current.contains(active)) {
+                setCalculatorOpen(false);
+              }
+            }, 0);
           }}
           placeholder="可輸入 120+95*2"
           className={inputClass}
@@ -422,7 +438,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         {calculatorOpen && (
           <div className="mt-2 grid grid-cols-4 gap-1.5">
             {[
-              { key: "⌫" },
+              { key: "←" },
               { key: "C" },
               { key: "/", span: 2 },
               { key: "7" },
@@ -444,20 +460,23 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
               <button
                 key={key}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   if (key === "C") {
                     setTotalPriceInput("");
+                    setReplaceOnNextInput(false);
                     return;
                   }
-                  if (key === "⌫") {
+                  if (key === "←") {
                     setTotalPriceInput((current) => current.slice(0, -1));
+                    setReplaceOnNextInput(false);
                     return;
                   }
                   if (key === "=") {
                     applyCalculatedTotal();
                     return;
                   }
-                  setTotalPriceInput((current) => `${current}${key}`);
+                  appendCalculatorKey(key);
                 }}
                 className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${span === 2 ? "col-span-2" : ""} ${
                   key === "="
