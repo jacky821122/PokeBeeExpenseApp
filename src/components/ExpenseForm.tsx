@@ -163,6 +163,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const totalPriceAreaRef = useRef<HTMLDivElement>(null);
   const totalPriceInputRef = useRef<HTMLInputElement>(null);
   const pendingReplaceOnBlurRef = useRef<boolean | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const totalPriceValue = evaluateExpression(totalPriceInput);
 
   useEffect(() => {
@@ -392,8 +393,13 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
-              setCalculatorOpen((open) => !open);
-              totalPriceInputRef.current?.focus();
+              if (calculatorOpen) {
+                setCalculatorOpen(false);
+                totalPriceInputRef.current?.blur();
+              } else {
+                setCalculatorOpen(true);
+                totalPriceInputRef.current?.focus();
+              }
             }}
             className="rounded-md border border-amber-200 px-2 py-1 text-xs text-gray-600 active:bg-amber-50"
             aria-label={calculatorOpen ? "收合計算機" : "展開計算機"}
@@ -443,10 +449,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         />
         {calculatorOpen && (
           <>
-            {totalPriceInput && totalPriceValue !== null && totalPriceInput !== String(totalPriceValue) && (
-              <p className="mt-1 text-right text-sm text-gray-500">= {totalPriceValue}</p>
-            )}
-            <div className="mt-2 grid grid-cols-4 gap-1.5">
+            <p className="mt-1 h-5 text-right text-sm text-gray-500">
+              = {totalPriceValue !== null ? totalPriceValue : ""}
+            </p>
+            <div className="mt-1 grid grid-cols-4 gap-1.5">
               {[
                 "(", ")", "←", "C",
                 "7", "8", "9", "/",
@@ -459,6 +465,13 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
                   type="button"
                   onPointerDown={(e) => {
                     e.preventDefault();
+                    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+                  }}
+                  onPointerUp={(e) => {
+                    const start = pointerStartRef.current;
+                    pointerStartRef.current = null;
+                    if (!start) return;
+                    if (Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) > 10) return;
                     if (key === "C") {
                       setTotalPriceInput("");
                       setReplaceOnNextInput(false);
