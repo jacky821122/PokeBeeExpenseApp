@@ -12,8 +12,8 @@ import {
 import type { Expense } from "@/types/expense";
 
 const PIE_COLORS = [
-  "#3b82f6", "#10b981", "#c8a96c", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#d4ba80", "#84cc16", "#ec4899", "#6b7280",
+  "#3b82f6", "#10b981", "#ccb86c", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#dac880", "#84cc16", "#ec4899", "#6b7280",
 ];
 
 function formatMoney(n: number) {

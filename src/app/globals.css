@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-amber-50: #fbf8f0;
-  --color-amber-100: #f7f0e0;
-  --color-amber-200: #ede0c4;
-  --color-amber-300: #dece9e;
-  --color-amber-400: #d4ba80;
-  --color-amber-500: #c8a96c;
-  --color-amber-600: #a88e4a;
-  --color-amber-700: #7a6835;
+  --color-amber-50: #fdfbf0;
+  --color-amber-100: #faf5e0;
+  --color-amber-200: #f2e8c4;
+  --color-amber-300: #e6d89e;
+  --color-amber-400: #dac880;
+  --color-amber-500: #ccb86c;
+  --color-amber-600: #ad9c4a;
+  --color-amber-700: #7d7235;
 }
 
 @layer base {
