@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import StatsView from "@/components/StatsView";
+import { WarmPreview, CleanPreview } from "@/components/ThemePreview";
 import type { Expense } from "@/types/expense";
 
 // ─── Items Tab ───────────────────────────────────────────────────
@@ -136,14 +137,23 @@ interface AdminTabsProps {
   initialItems: Record<string, string[]>;
 }
 
+const TAB_LABELS: Record<string, string> = {
+  stats: "統計",
+  items: "品項管理",
+  warm: "Warm 預覽",
+  clean: "Clean 預覽",
+};
+
+type TabKey = keyof typeof TAB_LABELS;
+
 export default function AdminTabs({ secretKey, expenses, initialItems }: AdminTabsProps) {
-  const [activeTab, setActiveTab] = useState<"stats" | "items">("stats");
+  const [activeTab, setActiveTab] = useState<TabKey>("stats");
 
   return (
     <div>
       {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
-        {(["stats", "items"] as const).map((tab) => (
+        {(Object.keys(TAB_LABELS) as TabKey[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -153,15 +163,19 @@ export default function AdminTabs({ secretKey, expenses, initialItems }: AdminTa
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {tab === "stats" ? "統計" : "品項管理"}
+            {TAB_LABELS[tab]}
           </button>
         ))}
       </div>
 
       {activeTab === "stats" ? (
         <StatsView expenses={expenses} />
-      ) : (
+      ) : activeTab === "items" ? (
         <ItemsTab secretKey={secretKey} initialItems={initialItems} />
+      ) : activeTab === "warm" ? (
+        <WarmPreview expenses={expenses} />
+      ) : (
+        <CleanPreview expenses={expenses} />
       )}
     </div>
   );

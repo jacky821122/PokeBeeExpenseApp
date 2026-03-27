@@ -24,7 +24,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-TW">
-      <body className="min-h-dvh overflow-x-hidden bg-gray-50 text-gray-900 antialiased">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
+      <body className="min-h-dvh overflow-x-hidden bg-gray-50 text-gray-900 antialiased" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
         {children}
       </body>
     </html>
