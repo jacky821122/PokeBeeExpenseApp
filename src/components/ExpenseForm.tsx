@@ -5,6 +5,67 @@ import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
 import type { Expense } from "@/types/expense";
 
+function evaluateExpression(expression: string): number | null {
+  const exp = expression.replace(/\s+/g, "");
+  if (!exp) return null;
+  const tokens = exp.match(/\d*\.?\d+|[+\-*/()]/g);
+  if (!tokens || tokens.join("") !== exp) return null;
+
+  const values: number[] = [];
+  const operators: string[] = [];
+  const precedence: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2 };
+
+  const applyTopOperator = () => {
+    const op = operators.pop();
+    const right = values.pop();
+    const left = values.pop();
+    if (!op || right === undefined || left === undefined) return false;
+    if (op === "+") values.push(left + right);
+    if (op === "-") values.push(left - right);
+    if (op === "*") values.push(left * right);
+    if (op === "/") {
+      if (right === 0) return false;
+      values.push(left / right);
+    }
+    return true;
+  };
+
+  let prevToken: string | null = null;
+  for (const token of tokens) {
+    if (/^\d*\.?\d+$/.test(token)) {
+      values.push(Number(token));
+    } else if (token === "(") {
+      operators.push(token);
+    } else if (token === ")") {
+      while (operators.length && operators[operators.length - 1] !== "(") {
+        if (!applyTopOperator()) return null;
+      }
+      if (operators.pop() !== "(") return null;
+    } else {
+      if (token === "-" && (prevToken === null || ["+", "-", "*", "/", "("].includes(prevToken))) {
+        values.push(0);
+      }
+      while (
+        operators.length &&
+        operators[operators.length - 1] !== "(" &&
+        precedence[operators[operators.length - 1]] >= precedence[token]
+      ) {
+        if (!applyTopOperator()) return null;
+      }
+      operators.push(token);
+    }
+    prevToken = token;
+  }
+
+  while (operators.length) {
+    if (operators[operators.length - 1] === "(") return null;
+    if (!applyTopOperator()) return null;
+  }
+
+  if (values.length !== 1 || !Number.isFinite(values[0])) return null;
+  return values[0];
+}
+
 function getTodayString() {
   const now = new Date();
   const y = now.getFullYear();
@@ -85,7 +146,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [item, setItem] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState<string>(UNITS[0]);
-  const [totalPrice, setTotalPrice] = useState("");
+  const [totalPriceInput, setTotalPriceInput] = useState("");
   const [supplier, setSupplier] = useState("");
   const [purchaser, setPurchaser] = useState("");
   const [note, setNote] = useState("");
@@ -96,6 +157,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
   const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, readonly string[]>>(ITEMS_BY_CATEGORY);
+  const totalPriceValue = evaluateExpression(totalPriceInput);
 
   useEffect(() => {
     setSupplierOptions(getCachedValues("supplier"));
@@ -132,6 +194,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
     setToast(null);
 
     try {
+      if (totalPriceValue === null || totalPriceValue < 0) {
+        throw new Error("請先輸入可計算的總價");
+      }
+
       const res = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -141,7 +207,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           item: item.trim(),
           quantity: Number(quantity),
           unit,
-          total_price: Number(totalPrice),
+          total_price: totalPriceValue,
           supplier: supplier.trim(),
           purchaser: purchaser.trim(),
           note: note.trim(),
@@ -172,7 +238,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       setItem("");
       setQuantity("1");
       setUnit(UNITS[0]);
-      setTotalPrice("");
+      setTotalPriceInput("");
       setSupplier("");
       setNote("");
 
@@ -291,16 +357,55 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       <div>
         <label className={labelClass}>總價</label>
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          value={totalPrice}
-          onChange={(e) => setTotalPrice(e.target.value)}
-          placeholder="0"
-          min="0"
-          step="any"
+          value={totalPriceInput}
+          onChange={(e) => setTotalPriceInput(e.target.value)}
+          placeholder="可輸入 120+95*2"
           className={inputClass}
           required
         />
+        <p className="mt-1 text-xs text-gray-500">
+          可直接輸入 + - × ÷（例如：89+95+120*2）
+        </p>
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {[
+            "7", "8", "9", "/",
+            "4", "5", "6", "*",
+            "1", "2", "3", "-",
+            "0", ".", "(", ")",
+          ].map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTotalPriceInput((current) => `${current}${key}`)}
+              className="rounded-lg border border-amber-200 py-2 text-sm text-gray-700 active:bg-amber-50"
+            >
+              {key === "*" ? "×" : key === "/" ? "÷" : key}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTotalPriceInput((current) => current.slice(0, -1))}
+            className="rounded-lg border border-amber-200 py-2 text-sm text-gray-700 active:bg-amber-50"
+          >
+            退格
+          </button>
+          <button
+            type="button"
+            onClick={() => setTotalPriceInput("")}
+            className="rounded-lg border border-amber-200 py-2 text-sm text-gray-700 active:bg-amber-50"
+          >
+            清空
+          </button>
+        </div>
+        <p className={`mt-2 text-sm ${totalPriceValue === null || totalPriceValue < 0 ? "text-red-600" : "text-green-700"}`}>
+          {totalPriceValue === null || totalPriceValue < 0
+            ? "結果：請輸入有效算式"
+            : `結果：${totalPriceValue}`}
+        </p>
       </div>
 
       {/* Optional fields */}
