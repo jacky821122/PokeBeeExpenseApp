@@ -32,10 +32,22 @@ Stats logic: `build*()` helpers in `src/components/StatsView.tsx`. Add section =
 
 File: `src/components/ExpenseForm.tsx`
 
-Field order: date → category → item → qty+unit → qty buttons → total_price → supplier → purchaser → note.
+Field order: date → category → item → qty+unit → qty buttons → total_price (with calculator) → supplier → purchaser → note.
 Item combobox: fetches `/api/items` on mount, falls back to `ITEMS_BY_CATEGORY`.
 Purchaser autocomplete: fetches `/api/purchasers` + merges localStorage.
 After submit keeps: category, purchaser, date. Resets: item, qty→1, unit→first, totalPrice, supplier, note.
+
+### Total price calculator
+
+Self-contained component: `src/components/CalculatorInput.tsx`. Expression evaluator: `src/lib/evaluate.ts`.
+
+- **Evaluator**: `evaluateExpression()` — shunting-yard algorithm with `+-*/()` and unary minus. Shared by CalculatorInput (preview) and ExpenseForm (submit validation).
+- **Mobile**: input is `readOnly`, system keyboard suppressed. Calculator auto-opens on focus, closes on `=`.
+- **Desktop**: input is editable (direct typing). Calculator toggles via button. `Enter` key = `=`.
+- **Replace-after-equals**: pressing `=` replaces expression with result and sets `replaceOnNextInput` — next digit starts a new expression. Operator keys continue from the result.
+- **Keypad layout**: 4-col × 5-row grid with CSS grid-template-areas. `+` spans 2 rows, `=` spans 2 cols. Layout: `←C÷×` / `789-` / `456[+]` / `123[+]` / `.0[==]`.
+- **Live preview**: fixed-height `= result` line below input. Persists last valid result (e.g. `60+` still shows `= 60`). Resets only when input is cleared.
+- **Touch handling**: `onPointerDown` records position, `onPointerUp` fires action only if distance < 10px (prevents scroll-triggered input).
 
 ## Modify recent entries list
 

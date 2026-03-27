@@ -3,68 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
+import { evaluateExpression } from "@/lib/evaluate";
+import CalculatorInput from "./CalculatorInput";
 import type { Expense } from "@/types/expense";
-
-function evaluateExpression(expression: string): number | null {
-  const exp = expression.replace(/\s+/g, "");
-  if (!exp) return null;
-  const tokens = exp.match(/\d*\.?\d+|[+\-*/()]/g);
-  if (!tokens || tokens.join("") !== exp) return null;
-
-  const values: number[] = [];
-  const operators: string[] = [];
-  const precedence: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2 };
-
-  const applyTopOperator = () => {
-    const op = operators.pop();
-    const right = values.pop();
-    const left = values.pop();
-    if (!op || right === undefined || left === undefined) return false;
-    if (op === "+") values.push(left + right);
-    if (op === "-") values.push(left - right);
-    if (op === "*") values.push(left * right);
-    if (op === "/") {
-      if (right === 0) return false;
-      values.push(left / right);
-    }
-    return true;
-  };
-
-  let prevToken: string | null = null;
-  for (const token of tokens) {
-    if (/^\d*\.?\d+$/.test(token)) {
-      values.push(Number(token));
-    } else if (token === "(") {
-      operators.push(token);
-    } else if (token === ")") {
-      while (operators.length && operators[operators.length - 1] !== "(") {
-        if (!applyTopOperator()) return null;
-      }
-      if (operators.pop() !== "(") return null;
-    } else {
-      if (token === "-" && (prevToken === null || ["+", "-", "*", "/", "("].includes(prevToken))) {
-        values.push(0);
-      }
-      while (
-        operators.length &&
-        operators[operators.length - 1] !== "(" &&
-        precedence[operators[operators.length - 1]] >= precedence[token]
-      ) {
-        if (!applyTopOperator()) return null;
-      }
-      operators.push(token);
-    }
-    prevToken = token;
-  }
-
-  while (operators.length) {
-    if (operators[operators.length - 1] === "(") return null;
-    if (!applyTopOperator()) return null;
-  }
-
-  if (values.length !== 1 || !Number.isFinite(values[0])) return null;
-  return values[0];
-}
 
 function getTodayString() {
   const now = new Date();
@@ -121,7 +62,7 @@ function Combobox({ value, onChange, options, placeholder, inputClass }: Combobo
             <li
               key={o}
               onMouseDown={(e) => {
-                e.preventDefault(); // prevent input blur before click registers
+                e.preventDefault();
                 onChange(o);
                 setOpen(false);
               }}
@@ -157,17 +98,9 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const [supplierOptions, setSupplierOptions] = useState<string[]>([]);
   const [purchaserOptions, setPurchaserOptions] = useState<string[]>([]);
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, readonly string[]>>(ITEMS_BY_CATEGORY);
-  const [calculatorOpen, setCalculatorOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const [replaceOnNextInput, setReplaceOnNextInput] = useState(false);
-  const totalPriceAreaRef = useRef<HTMLDivElement>(null);
-  const totalPriceInputRef = useRef<HTMLInputElement>(null);
-  const pendingReplaceOnBlurRef = useRef<boolean | null>(null);
-  const totalPriceValue = evaluateExpression(totalPriceInput);
 
   useEffect(() => {
     setSupplierOptions(getCachedValues("supplier"));
-    // Seed purchaser options from localStorage immediately, then merge with server data
     setPurchaserOptions(getCachedValues("purchaser"));
     fetch("/api/purchasers")
       .then((r) => r.ok ? r.json() : [])
@@ -180,7 +113,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           return merged;
         });
       })
-      .catch(() => {}); // Keep localStorage values on failure
+      .catch(() => {});
 
     fetch("/api/items")
       .then((r) => r.ok ? r.json() : null)
@@ -189,33 +122,8 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           setItemsByCategory(data);
         }
       })
-      .catch(() => {}); // Keep constants fallback on failure
+      .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
-    const handleMediaChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    setIsDesktop(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleMediaChange);
-    return () => mediaQuery.removeEventListener("change", handleMediaChange);
-  }, []);
-
-  function applyCalculatedTotal() {
-    const isValidTotal = totalPriceValue !== null && totalPriceValue >= 0;
-    if (isValidTotal) setTotalPriceInput(String(totalPriceValue));
-    pendingReplaceOnBlurRef.current = isValidTotal;
-    setReplaceOnNextInput(isValidTotal);
-    setCalculatorOpen(false);
-    totalPriceInputRef.current?.blur();
-  }
-
-  function appendCalculatorKey(key: string) {
-    setTotalPriceInput((current) => {
-      if (replaceOnNextInput && /^[0-9.]$/.test(key)) return key;
-      return `${current}${key}`;
-    });
-    setReplaceOnNextInput(false);
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -225,6 +133,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
     setToast(null);
 
     try {
+      const totalPriceValue = evaluateExpression(totalPriceInput);
       if (totalPriceValue === null || totalPriceValue < 0) {
         throw new Error("請先輸入可計算的總價");
       }
@@ -252,7 +161,6 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
 
       const expense = await res.json();
 
-      // Save supplier/purchaser to autocomplete cache
       if (supplier.trim()) {
         addCachedValue("supplier", supplier.trim());
         setSupplierOptions(getCachedValues("supplier"));
@@ -265,7 +173,6 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         });
       }
 
-      // Reset form but keep category, purchaser, date
       setItem("");
       setQuantity("1");
       setUnit(UNITS[0]);
@@ -319,7 +226,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         </select>
       </div>
 
-      {/* Item — combobox with fixed preset options */}
+      {/* Item */}
       <div>
         <label className={labelClass}>品項</label>
         <Combobox
@@ -331,7 +238,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         />
       </div>
 
-      {/* Quantity + Unit (side by side) */}
+      {/* Quantity + Unit */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>數量</label>
@@ -366,10 +273,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       {/* Quantity quick buttons */}
       <div className="grid grid-cols-6 gap-1.5">
         {[
-          { label: "+1", action: () => setQuantity((q) => String(Math.max(0, Number(q) + 1))) },
-          { label: "-1", action: () => setQuantity((q) => String(Math.max(0, Number(q) - 1))) },
-          { label: "+5", action: () => setQuantity((q) => String(Math.max(0, Number(q) + 5))) },
-          { label: "-5", action: () => setQuantity((q) => String(Math.max(0, Number(q) - 5))) },
+          { label: "+1", action: () => setQuantity((q) => String(Math.max(1, Number(q) + 1))) },
+          { label: "-1", action: () => setQuantity((q) => String(Math.max(1, Number(q) - 1))) },
+          { label: "+5", action: () => setQuantity((q) => String(Math.max(1, Number(q) + 5))) },
+          { label: "-5", action: () => setQuantity((q) => String(Math.max(1, Number(q) - 5))) },
           { label: "5",  action: () => setQuantity("5") },
           { label: "10", action: () => setQuantity("10") },
         ].map(({ label, action }) => (
@@ -385,120 +292,13 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       </div>
 
       {/* Total Price */}
-      <div ref={totalPriceAreaRef}>
-        <div className="mb-1 flex items-center justify-between">
-          <label className={labelClass + " mb-0"}>總價</label>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              setCalculatorOpen((open) => !open);
-              totalPriceInputRef.current?.focus();
-            }}
-            className="rounded-md border border-amber-200 px-2 py-1 text-xs text-gray-600 active:bg-amber-50"
-            aria-label={calculatorOpen ? "收合計算機" : "展開計算機"}
-          >
-            {calculatorOpen ? "▾ 計算機" : "▸ 計算機"}
-          </button>
-        </div>
-        <input
-          type="text"
-          ref={totalPriceInputRef}
-          inputMode={isDesktop ? "decimal" : "none"}
-          readOnly={!isDesktop}
-          value={totalPriceInput}
-          onChange={(e) => {
-            if (isDesktop) setTotalPriceInput(e.target.value);
-            setReplaceOnNextInput(false);
-          }}
-          onFocus={() => setCalculatorOpen(true)}
-          onKeyDown={(e) => {
-            if (isDesktop && replaceOnNextInput && /^[0-9.]$/.test(e.key)) {
-              e.preventDefault();
-              setTotalPriceInput(e.key);
-              setReplaceOnNextInput(false);
-              return;
-            }
-            if (isDesktop && e.key === "Enter") {
-              e.preventDefault();
-              applyCalculatedTotal();
-            }
-          }}
-          onBlur={() => {
-            const pendingReplace = pendingReplaceOnBlurRef.current;
-            pendingReplaceOnBlurRef.current = null;
-            const shouldReplace = pendingReplace ?? (() => {
-              const parsed = evaluateExpression(totalPriceInput);
-              return parsed !== null && parsed >= 0;
-            })();
-            setReplaceOnNextInput(shouldReplace);
-            setTimeout(() => {
-              if (!isDesktop) return;
-              const active = document.activeElement;
-              if (totalPriceAreaRef.current && active && !totalPriceAreaRef.current.contains(active)) {
-                setCalculatorOpen(false);
-              }
-            }, 0);
-          }}
-          placeholder="可輸入 120+95*2"
-          className={inputClass}
-          required
-        />
-        {calculatorOpen && (
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
-            {[
-              { key: "←" },
-              { key: "C" },
-              { key: "/", span: 2 },
-              { key: "7" },
-              { key: "8" },
-              { key: "9" },
-              { key: "*" },
-              { key: "4" },
-              { key: "5" },
-              { key: "6" },
-              { key: "-" },
-              { key: "1" },
-              { key: "2" },
-              { key: "3" },
-              { key: "+" },
-              { key: "." },
-              { key: "0" },
-              { key: "=", span: 2 },
-            ].map(({ key, span }) => (
-              <button
-                key={key}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  if (key === "C") {
-                    setTotalPriceInput("");
-                    setReplaceOnNextInput(false);
-                    return;
-                  }
-                  if (key === "←") {
-                    setTotalPriceInput((current) => current.slice(0, -1));
-                    setReplaceOnNextInput(false);
-                    return;
-                  }
-                  if (key === "=") {
-                    applyCalculatedTotal();
-                    return;
-                  }
-                  appendCalculatorKey(key);
-                }}
-                className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${span === 2 ? "col-span-2" : ""} ${
-                  key === "="
-                    ? "border-amber-400 bg-amber-100 font-semibold text-amber-800"
-                    : "border-amber-200 text-gray-700"
-                }`}
-              >
-                {key === "*" ? "×" : key === "/" ? "÷" : key}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <CalculatorInput
+        value={totalPriceInput}
+        onChange={setTotalPriceInput}
+        inputClass={inputClass}
+        placeholder="可輸入 120+95*2"
+        required
+      />
 
       {/* Optional fields */}
       <div>
@@ -543,7 +343,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-xl bg-amber-200 py-4 text-lg font-semibold text-amber-800 active:bg-amber-300 disabled:bg-gray-400"
+        className="w-full rounded-xl bg-amber-200 py-4 text-lg font-semibold text-amber-800 active:bg-amber-300 disabled:bg-amber-100 disabled:text-amber-400"
       >
         {submitting ? "儲存中..." : "送出"}
       </button>
