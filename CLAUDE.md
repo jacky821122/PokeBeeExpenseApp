@@ -32,10 +32,21 @@ Stats logic: `build*()` helpers in `src/components/StatsView.tsx`. Add section =
 
 File: `src/components/ExpenseForm.tsx`
 
-Field order: date → category → item → qty+unit → qty buttons → total_price → supplier → purchaser → note.
+Field order: date → category → item → qty+unit → qty buttons → total_price (with calculator) → supplier → purchaser → note.
 Item combobox: fetches `/api/items` on mount, falls back to `ITEMS_BY_CATEGORY`.
 Purchaser autocomplete: fetches `/api/purchasers` + merges localStorage.
 After submit keeps: category, purchaser, date. Resets: item, qty→1, unit→first, totalPrice, supplier, note.
+
+### Total price calculator
+
+Inline calculator keypad for the total price field. Supports arithmetic expressions (e.g. `120+95*2`).
+
+- **Evaluator**: `evaluateExpression()` at top of file — shunting-yard algorithm with `+-*/()` and unary minus.
+- **Mobile**: input is `readOnly`, system keyboard suppressed. Calculator auto-opens on focus, closes on `=`.
+- **Desktop**: input is editable (direct typing). Calculator toggles via button. `Enter` key = `=`.
+- **Replace-after-equals**: pressing `=` replaces expression with result and sets `replaceOnNextInput` — next digit starts a new expression. Operator keys continue from the result.
+- **Keypad layout**: 4-col grid, all buttons same size — `()←C` / `789÷` / `456×` / `123-` / `.0+=`.
+- **Live preview**: shows `= result` below input when expression contains operators (input differs from computed value).
 
 ## Modify recent entries list
 

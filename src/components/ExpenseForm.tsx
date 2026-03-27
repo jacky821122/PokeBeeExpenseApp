@@ -366,10 +366,10 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       {/* Quantity quick buttons */}
       <div className="grid grid-cols-6 gap-1.5">
         {[
-          { label: "+1", action: () => setQuantity((q) => String(Math.max(0, Number(q) + 1))) },
-          { label: "-1", action: () => setQuantity((q) => String(Math.max(0, Number(q) - 1))) },
-          { label: "+5", action: () => setQuantity((q) => String(Math.max(0, Number(q) + 5))) },
-          { label: "-5", action: () => setQuantity((q) => String(Math.max(0, Number(q) - 5))) },
+          { label: "+1", action: () => setQuantity((q) => String(Math.max(1, Number(q) + 1))) },
+          { label: "-1", action: () => setQuantity((q) => String(Math.max(1, Number(q) - 1))) },
+          { label: "+5", action: () => setQuantity((q) => String(Math.max(1, Number(q) + 5))) },
+          { label: "-5", action: () => setQuantity((q) => String(Math.max(1, Number(q) - 5))) },
           { label: "5",  action: () => setQuantity("5") },
           { label: "10", action: () => setQuantity("10") },
         ].map(({ label, action }) => (
@@ -427,10 +427,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           onBlur={() => {
             const pendingReplace = pendingReplaceOnBlurRef.current;
             pendingReplaceOnBlurRef.current = null;
-            const shouldReplace = pendingReplace ?? (() => {
-              const parsed = evaluateExpression(totalPriceInput);
-              return parsed !== null && parsed >= 0;
-            })();
+            const shouldReplace = pendingReplace ?? (totalPriceValue !== null && totalPriceValue >= 0);
             setReplaceOnNextInput(shouldReplace);
             setTimeout(() => {
               if (!isDesktop) return;
@@ -445,58 +442,50 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
           required
         />
         {calculatorOpen && (
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
-            {[
-              { key: "←" },
-              { key: "C" },
-              { key: "/", span: 2 },
-              { key: "7" },
-              { key: "8" },
-              { key: "9" },
-              { key: "*" },
-              { key: "4" },
-              { key: "5" },
-              { key: "6" },
-              { key: "-" },
-              { key: "1" },
-              { key: "2" },
-              { key: "3" },
-              { key: "+" },
-              { key: "." },
-              { key: "0" },
-              { key: "=", span: 2 },
-            ].map(({ key, span }) => (
-              <button
-                key={key}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  if (key === "C") {
-                    setTotalPriceInput("");
-                    setReplaceOnNextInput(false);
-                    return;
-                  }
-                  if (key === "←") {
-                    setTotalPriceInput((current) => current.slice(0, -1));
-                    setReplaceOnNextInput(false);
-                    return;
-                  }
-                  if (key === "=") {
-                    applyCalculatedTotal();
-                    return;
-                  }
-                  appendCalculatorKey(key);
-                }}
-                className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${span === 2 ? "col-span-2" : ""} ${
-                  key === "="
-                    ? "border-amber-400 bg-amber-100 font-semibold text-amber-800"
-                    : "border-amber-200 text-gray-700"
-                }`}
-              >
-                {key === "*" ? "×" : key === "/" ? "÷" : key}
-              </button>
-            ))}
-          </div>
+          <>
+            {totalPriceInput && totalPriceValue !== null && totalPriceInput !== String(totalPriceValue) && (
+              <p className="mt-1 text-right text-sm text-gray-500">= {totalPriceValue}</p>
+            )}
+            <div className="mt-2 grid grid-cols-4 gap-1.5">
+              {[
+                "(", ")", "←", "C",
+                "7", "8", "9", "/",
+                "4", "5", "6", "*",
+                "1", "2", "3", "-",
+                ".", "0", "+", "=",
+              ].map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    if (key === "C") {
+                      setTotalPriceInput("");
+                      setReplaceOnNextInput(false);
+                      return;
+                    }
+                    if (key === "←") {
+                      setTotalPriceInput((current) => current.slice(0, -1));
+                      setReplaceOnNextInput(false);
+                      return;
+                    }
+                    if (key === "=") {
+                      applyCalculatedTotal();
+                      return;
+                    }
+                    appendCalculatorKey(key);
+                  }}
+                  className={`rounded-lg border py-2 text-sm active:bg-amber-50 ${
+                    key === "="
+                      ? "border-amber-400 bg-amber-100 font-semibold text-amber-800"
+                      : "border-amber-200 text-gray-700"
+                  }`}
+                >
+                  {key === "*" ? "×" : key === "/" ? "÷" : key}
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -543,7 +532,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-xl bg-amber-200 py-4 text-lg font-semibold text-amber-800 active:bg-amber-300 disabled:bg-gray-400"
+        className="w-full rounded-xl bg-amber-200 py-4 text-lg font-semibold text-amber-800 active:bg-amber-300 disabled:bg-amber-100 disabled:text-amber-400"
       >
         {submitting ? "儲存中..." : "送出"}
       </button>
