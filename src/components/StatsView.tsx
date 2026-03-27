@@ -12,8 +12,8 @@ import {
 import type { Expense } from "@/types/expense";
 
 const PIE_COLORS = [
-  "#3b82f6", "#10b981", "#fff47d", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#faf596", "#84cc16", "#ec4899", "#6b7280",
+  "#3b82f6", "#10b981", "#fde68a", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#fbbf24", "#84cc16", "#ec4899", "#6b7280",
 ];
 
 function formatMoney(n: number) {
@@ -125,7 +125,7 @@ export default function StatsView({ expenses }: { expenses: Expense[] }) {
             onClick={() => setActiveFilter(f.value)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               activeFilter === f.value
-                ? "bg-amber-500 text-white"
+                ? "bg-amber-200 text-amber-800"
                 : "bg-amber-100/60 text-amber-700 active:bg-amber-200"
             }`}
           >

@@ -57,13 +57,16 @@ Include: collapsible chevrons, filter pills, refresh button, undo buttons, quant
 
 ## Modify theme colors
 
-Theme uses Tailwind's `amber-*` classes throughout all components. The actual color values are overridden in `src/app/globals.css` via `@theme` (cream/butter yellow palette, not Tailwind default amber).
+Theme uses Tailwind's default `amber` palette. Primary accent is `amber-200` with `text-amber-800` for contrast.
 
-To adjust colors: edit the `@theme` block in `globals.css`. No component class names need changing.
-
-Also update:
-- `PIE_COLORS` in `src/components/StatsView.tsx` (hex values for chart colors at index 2 and 6)
+Key files to update when changing accent color:
+- `src/app/page.tsx` — header bg, refresh spinner color
+- `src/components/ExpenseForm.tsx` — submit button
+- `src/components/RecentEntries.tsx` — active filter pill
+- `src/components/StatsView.tsx` — active filter pill + `PIE_COLORS` hex values (index 2 and 6)
 - `public/manifest.json` → `theme_color`
+
+Note: `amber-200` is light — pair with dark text (`amber-800`), not `text-white`.
 
 ## Constraints
 

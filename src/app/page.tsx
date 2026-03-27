@@ -95,9 +95,9 @@ export default function Home() {
   return (
     <div className="min-h-dvh">
       {/* Amber header */}
-      <div className="bg-amber-500 px-4 py-3 flex items-center gap-3">
+      <div className="bg-amber-200 px-4 py-3 flex items-center gap-3">
         <span className="text-2xl">🐝</span>
-        <h1 className="text-lg font-bold text-white">pokebee 支出記錄</h1>
+        <h1 className="text-lg font-bold text-amber-800">pokebee 支出記錄</h1>
       </div>
 
       <main className="mx-auto w-full max-w-lg px-4 py-5">
@@ -136,7 +136,7 @@ export default function Home() {
                   title="重新整理"
                   className={`rounded-full p-2 transition-colors ${
                     refreshing
-                      ? "text-amber-500"
+                      ? "text-amber-600"
                       : "text-gray-400 active:bg-gray-100 active:text-gray-600"
                   }`}
                 >

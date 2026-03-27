@@ -76,7 +76,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
             onClick={() => setActiveFilter(f.value)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               activeFilter === f.value
-                ? "bg-amber-500 text-white"
+                ? "bg-amber-200 text-amber-800"
                 : "bg-amber-100/60 text-amber-700 active:bg-amber-200"
             }`}
           >

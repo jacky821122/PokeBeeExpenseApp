@@ -346,7 +346,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-xl bg-amber-500 py-4 text-lg font-semibold text-white active:bg-amber-600 disabled:bg-gray-400"
+        className="w-full rounded-xl bg-amber-200 py-4 text-lg font-semibold text-amber-800 active:bg-amber-300 disabled:bg-gray-400"
       >
         {submitting ? "儲存中..." : "送出"}
       </button>
