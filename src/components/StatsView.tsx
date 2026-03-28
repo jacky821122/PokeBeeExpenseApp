@@ -192,8 +192,18 @@ export default function StatsView({ expenses }: { expenses: Expense[] }) {
                 }}
               />
               <Legend
-                formatter={(value) => (
-                  <span className="text-sm text-gray-700">{value}</span>
+                content={() => (
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                    {byCategory.map((entry, i) => (
+                      <span key={entry.cat} className="flex items-center gap-1.5 text-sm text-gray-700">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: entry.cat === "其他" ? "#9ca3af" : PIE_COLORS[i % PIE_COLORS.length] }}
+                        />
+                        {entry.cat} ({entry.pct.toFixed(1)}%)
+                      </span>
+                    ))}
+                  </div>
                 )}
               />
             </PieChart>
