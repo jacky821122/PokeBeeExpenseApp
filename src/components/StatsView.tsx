@@ -48,9 +48,25 @@ function buildCategoryStats(expenses: Expense[]) {
     map[e.category] = (map[e.category] ?? 0) + e.total_price;
   }
   const total = Object.values(map).reduce((s, v) => s + v, 0);
-  return Object.entries(map)
+  const sorted = Object.entries(map)
     .sort((a, b) => b[1] - a[1])
     .map(([cat, amt]) => ({ cat, amt, pct: total > 0 ? (amt / total) * 100 : 0 }));
+
+  // Group categories below 3% into "其他"
+  const threshold = 3;
+  const main: typeof sorted = [];
+  let otherAmt = 0;
+  for (const entry of sorted) {
+    if (entry.pct < threshold) {
+      otherAmt += entry.amt;
+    } else {
+      main.push(entry);
+    }
+  }
+  if (otherAmt > 0) {
+    main.push({ cat: "其他", amt: otherAmt, pct: total > 0 ? (otherAmt / total) * 100 : 0 });
+  }
+  return main;
 }
 
 function buildItemStats(expenses: Expense[]) {
@@ -152,10 +168,10 @@ export default function StatsView({ expenses }: { expenses: Expense[] }) {
                 dataKey="value"
               animationDuration={750}
               >
-                {byCategory.map((_, i) => (
+                {byCategory.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={PIE_COLORS[i % PIE_COLORS.length]}
+                    fill={entry.cat === "其他" ? "#9ca3af" : PIE_COLORS[i % PIE_COLORS.length]}
                     stroke="white"
                     strokeWidth={2}
                   />
