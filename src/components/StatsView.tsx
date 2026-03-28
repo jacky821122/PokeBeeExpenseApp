@@ -200,7 +200,7 @@ export default function StatsView({ expenses }: { expenses: Expense[] }) {
                           className="inline-block h-2.5 w-2.5 rounded-full"
                           style={{ backgroundColor: entry.cat === "其他" ? "#9ca3af" : PIE_COLORS[i % PIE_COLORS.length] }}
                         />
-                        {entry.cat} ({entry.pct.toFixed(1)}%)
+                        {entry.cat}
                       </span>
                     ))}
                   </div>
