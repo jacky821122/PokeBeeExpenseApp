@@ -5,6 +5,18 @@ const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_NAME = "Sheet1";
 const ITEMS_SHEET_NAME = "Items";
 
+// In-memory cache for getAllExpenses (server process lifetime)
+let expensesCache: { data: Expense[]; expiresAt: number } | null = null;
+const EXPENSES_CACHE_TTL = 60_000; // 60 seconds
+
+export function isExpenseCacheValid(): boolean {
+  return expensesCache !== null && Date.now() < expensesCache.expiresAt;
+}
+
+function invalidateExpensesCache() {
+  expensesCache = null;
+}
+
 // Column order in the Google Sheet:
 // date | category | item | quantity | unit | unit_price | total_price | supplier | purchaser | note | created_at
 
@@ -59,6 +71,7 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
   const match = updatedRange.match(/:([A-Z]+)(\d+)$/);
   const row_index = match ? parseInt(match[2], 10) : undefined;
 
+  invalidateExpensesCache();
   return { ...input, unit_price, created_at, row_index };
 }
 
@@ -103,6 +116,7 @@ export async function deleteExpenseRow(row_index: number, created_at: string): P
       ],
     },
   });
+  invalidateExpensesCache();
 }
 
 export async function getRecentExpenses(n: number = 30): Promise<Expense[]> {
@@ -137,6 +151,8 @@ export async function getRecentExpenses(n: number = 30): Promise<Expense[]> {
 }
 
 export async function getAllExpenses(): Promise<Expense[]> {
+  if (isExpenseCacheValid()) return expensesCache!.data;
+
   const sheets = getSheets();
   const sheetId = process.env.SHEET_ID!;
 
@@ -146,9 +162,12 @@ export async function getAllExpenses(): Promise<Expense[]> {
   });
 
   const rows = res.data.values;
-  if (!rows || rows.length <= 1) return [];
+  if (!rows || rows.length <= 1) {
+    expensesCache = { data: [], expiresAt: Date.now() + EXPENSES_CACHE_TTL };
+    return [];
+  }
 
-  return rows.slice(1).map((row) => ({
+  const data = rows.slice(1).map((row) => ({
     date: row[0] || "",
     category: row[1] || "",
     item: row[2] || "",
@@ -161,6 +180,9 @@ export async function getAllExpenses(): Promise<Expense[]> {
     note: row[9] || "",
     created_at: row[10] || "",
   }));
+
+  expensesCache = { data, expiresAt: Date.now() + EXPENSES_CACHE_TTL };
+  return data;
 }
 
 export async function getAllPurchasers(): Promise<string[]> {

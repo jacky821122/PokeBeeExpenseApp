@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendExpense, getAllExpenses, deleteExpenseRow } from "@/lib/sheets";
+import { appendExpense, getAllExpenses, deleteExpenseRow, isExpenseCacheValid } from "@/lib/sheets";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import type { ExpenseInput } from "@/types/expense";
 
@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
     const isValidMonth = month ? /^\d{4}-\d{2}$/.test(month) : false;
     const isValidLimit = Number.isFinite(limit) && limit > 0;
 
+    const cacheHit = isExpenseCacheValid();
     let expenses = await getAllExpenses();
 
     if (scope !== "all") {
@@ -92,7 +93,9 @@ export async function GET(request: NextRequest) {
       expenses = expenses.slice(0, limit);
     }
 
-    return NextResponse.json(expenses);
+    return NextResponse.json(expenses, {
+      headers: { "X-Cache": cacheHit ? "HIT" : "MISS" },
+    });
   } catch (error) {
     console.error("Failed to fetch expenses:", error);
     return NextResponse.json(
