@@ -33,7 +33,12 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
     async function fetchExpenses() {
       setLoading(true);
       try {
-        const res = await fetch("/api/expenses");
+        const params = new URLSearchParams();
+        if (activeFilter !== "all") {
+          params.set("month", activeFilter);
+        }
+        params.set("limit", "30");
+        const res = await fetch(`/api/expenses?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
           setExpenses(data);
@@ -45,15 +50,10 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
       }
     }
     fetchExpenses();
-  }, [refreshKey]);
-
-  const filtered =
-    activeFilter === "all"
-      ? expenses
-      : expenses.filter((e) => e.date.startsWith(activeFilter));
+  }, [refreshKey, activeFilter]);
 
   const monthTotal = activeFilter !== "all"
-    ? filtered.reduce((sum, e) => sum + e.total_price, 0)
+    ? expenses.reduce((sum, e) => sum + e.total_price, 0)
     : null;
 
   const undoableSet = new Set(undoable.map((u) => u.created_at));
@@ -88,7 +88,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
       {/* Monthly summary */}
       {monthTotal !== null && !loading && (
         <div className="mb-4 flex items-center gap-3 rounded-lg bg-amber-50/40 px-4 py-2 text-sm text-gray-600">
-          <span>共 {filtered.length} 筆</span>
+          <span>共 {expenses.length} 筆</span>
           <span className="text-gray-300">|</span>
           <span className="font-medium text-gray-800">
             合計 ${monthTotal.toLocaleString()}
@@ -98,7 +98,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
 
       {loading ? (
         <p className="py-4 text-center text-sm text-gray-400">載入中...</p>
-      ) : filtered.length === 0 ? (
+      ) : expenses.length === 0 ? (
         <p className="py-4 text-center text-sm text-gray-400">尚無記錄</p>
       ) : (
         <div className="overflow-x-auto">
@@ -115,7 +115,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e, i) => {
+              {expenses.map((e, i) => {
                 const canUndo = undoableSet.has(e.created_at);
                 return (
                   <tr key={i} className={`border-b border-gray-100 ${i % 2 === 1 ? "bg-amber-50/40" : ""}`}>
