@@ -43,7 +43,7 @@ export default function Home() {
   // Fetch expenses for stats tab
   useEffect(() => {
     if (activeTab !== "stats") return;
-    fetch("/api/expenses")
+    fetch("/api/expenses?scope=all")
       .then((r) => (r.ok ? r.json() : []))
       .then(setExpenses)
       .catch(() => {});

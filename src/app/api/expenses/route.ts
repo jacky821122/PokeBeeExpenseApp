@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendExpense, getRecentExpenses, deleteExpenseRow } from "@/lib/sheets";
+import { appendExpense, getAllExpenses, deleteExpenseRow } from "@/lib/sheets";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import type { ExpenseInput } from "@/types/expense";
 
@@ -68,9 +68,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const expenses = await getRecentExpenses(30);
+    const scope = request.nextUrl.searchParams.get("scope");
+    const month = request.nextUrl.searchParams.get("month");
+    const limitParam = request.nextUrl.searchParams.get("limit");
+    const limit = limitParam ? Number(limitParam) : 30;
+
+    const isValidMonth = month ? /^\d{4}-\d{2}$/.test(month) : false;
+    const isValidLimit = Number.isFinite(limit) && limit > 0;
+
+    let expenses = await getAllExpenses();
+
+    if (scope !== "all") {
+      expenses = expenses.reverse();
+    }
+
+    if (isValidMonth) {
+      expenses = expenses.filter((e) => e.date.startsWith(month!));
+    }
+
+    if (scope !== "all" && isValidLimit) {
+      expenses = expenses.slice(0, limit);
+    }
+
     return NextResponse.json(expenses);
   } catch (error) {
     console.error("Failed to fetch expenses:", error);
