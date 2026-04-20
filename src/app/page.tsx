@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ExpenseForm from "@/components/ExpenseForm";
 import RecentEntries from "@/components/RecentEntries";
 import StatsView from "@/components/StatsView";
+import ItemsManager from "@/components/ItemsManager";
 import { apiFetch } from "@/lib/apiFetch";
 import type { Expense } from "@/types/expense";
 
@@ -40,6 +41,50 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [undoable, setUndoable] = useState<UndoableEntry[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  // Easter egg: tap bee 5x to open admin
+  const [tapCount, setTapCount] = useState(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showKeyPrompt, setShowKeyPrompt] = useState(false);
+  const [adminKey, setAdminKey] = useState<string | null>(null);
+  const [adminItems, setAdminItems] = useState<Record<string, string[]> | null>(null);
+  const [keyError, setKeyError] = useState(false);
+
+  function handleBeeTap() {
+    const next = tapCount + 1;
+    setTapCount(next);
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    if (next >= 5) {
+      setTapCount(0);
+      setShowKeyPrompt(true);
+      setKeyError(false);
+    } else {
+      tapTimer.current = setTimeout(() => setTapCount(0), 1500);
+    }
+  }
+
+  async function handleKeySubmit(key: string) {
+    try {
+      const res = await apiFetch("/api/admin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+      if (!res.ok) {
+        setKeyError(true);
+        return;
+      }
+      // Fetch items
+      const itemsRes = await apiFetch("/api/items");
+      const items = itemsRes.ok ? await itemsRes.json() : {};
+      setAdminKey(key);
+      setAdminItems(items);
+      setShowKeyPrompt(false);
+      setKeyError(false);
+    } catch {
+      setKeyError(true);
+    }
+  }
 
   // Fetch expenses for stats tab
   useEffect(() => {
@@ -105,7 +150,10 @@ export default function Home() {
     <div className="min-h-dvh">
       {/* Amber header */}
       <div className="bg-amber-200 px-4 py-3 flex items-center gap-3">
-        <span className="text-2xl">🐝</span>
+        <span
+          className="text-2xl select-none cursor-default"
+          onClick={handleBeeTap}
+        >🐝</span>
         <h1 className="text-lg font-bold text-amber-800">pokebee 支出記錄</h1>
       </div>
 
@@ -197,6 +245,57 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Key prompt modal */}
+      {showKeyPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-xs rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-center text-lg font-bold text-gray-800">🔑 輸入管理密碼</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const input = (e.currentTarget.elements.namedItem("key") as HTMLInputElement).value;
+                handleKeySubmit(input);
+              }}
+            >
+              <input
+                name="key"
+                type="password"
+                autoFocus
+                placeholder="密碼"
+                className="mb-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+              />
+              {keyError && (
+                <p className="mb-3 text-center text-sm text-red-500">密碼錯誤</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowKeyPrompt(false); setKeyError(false); }}
+                  className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-600"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-amber-500 py-2.5 text-sm font-medium text-white"
+                >
+                  確認
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Items manager modal */}
+      {adminKey && adminItems && (
+        <ItemsManager
+          secretKey={adminKey}
+          initialItems={adminItems}
+          onClose={() => { setAdminKey(null); setAdminItems(null); }}
+        />
+      )}
     </div>
   );
 }
