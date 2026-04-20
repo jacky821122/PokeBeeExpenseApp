@@ -119,37 +119,6 @@ export async function deleteExpenseRow(row_index: number, created_at: string): P
   invalidateExpensesCache();
 }
 
-export async function getRecentExpenses(n: number = 30): Promise<Expense[]> {
-  const sheets = getSheets();
-  const sheetId = process.env.SHEET_ID!;
-
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: `${SHEET_NAME}!A:K`,
-  });
-
-  const rows = res.data.values;
-  if (!rows || rows.length <= 1) return []; // No data (only header or empty)
-
-  // Skip header row, take last n entries
-  const dataRows = rows.slice(1);
-  const recent = dataRows.slice(-n).reverse();
-
-  return recent.map((row) => ({
-    date: row[0] || "",
-    category: row[1] || "",
-    item: row[2] || "",
-    quantity: Number(row[3]) || 0,
-    unit: row[4] || "",
-    unit_price: Number(row[5]) || 0,
-    total_price: Number(row[6]) || 0,
-    supplier: row[7] || "",
-    purchaser: row[8] || "",
-    note: row[9] || "",
-    created_at: row[10] || "",
-  }));
-}
-
 export async function getAllExpenses(): Promise<Expense[]> {
   if (isExpenseCacheValid()) return expensesCache!.data;
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
 import { evaluateExpression } from "@/lib/evaluate";
+import { apiFetch } from "@/lib/apiFetch";
 import CalculatorInput from "./CalculatorInput";
 import type { Expense } from "@/types/expense";
 
@@ -102,7 +103,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   useEffect(() => {
     setSupplierOptions(getCachedValues("supplier"));
     setPurchaserOptions(getCachedValues("purchaser"));
-    fetch("/api/purchasers")
+    apiFetch("/api/purchasers")
       .then((r) => r.ok ? r.json() : [])
       .then((serverNames: string[]) => {
         setPurchaserOptions((local) => {
@@ -115,7 +116,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
       })
       .catch(() => {});
 
-    fetch("/api/items")
+    apiFetch("/api/items")
       .then((r) => r.ok ? r.json() : null)
       .then((data: Record<string, string[]> | null) => {
         if (data && Object.keys(data).length > 0) {
@@ -138,7 +139,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         throw new Error("請先輸入可計算的總價");
       }
 
-      const res = await fetch("/api/expenses", {
+      const res = await apiFetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

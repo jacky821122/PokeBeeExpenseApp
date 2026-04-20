@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
+import { apiFetch } from "@/lib/apiFetch";
 import StatsView from "@/components/StatsView";
 import type { Expense } from "@/types/expense";
 
@@ -25,7 +26,7 @@ function ItemsTab({
     setLoading(`add-${category}`);
     setError(null);
     try {
-      const res = await fetch("/api/items", {
+      const res = await apiFetch("/api/items", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -53,7 +54,7 @@ function ItemsTab({
     setLoading(`remove-${category}-${item}`);
     setError(null);
     try {
-      const res = await fetch("/api/items", {
+      const res = await apiFetch("/api/items", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

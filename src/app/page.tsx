@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ExpenseForm from "@/components/ExpenseForm";
 import RecentEntries from "@/components/RecentEntries";
 import StatsView from "@/components/StatsView";
+import { apiFetch } from "@/lib/apiFetch";
 import type { Expense } from "@/types/expense";
 
 export type UndoableEntry = {
@@ -43,7 +44,7 @@ export default function Home() {
   // Fetch expenses for stats tab
   useEffect(() => {
     if (activeTab !== "stats") return;
-    fetch("/api/expenses?scope=all")
+    apiFetch("/api/expenses?scope=all")
       .then((r) => (r.ok ? r.json() : []))
       .then(setExpenses)
       .catch(() => {});
@@ -75,7 +76,7 @@ export default function Home() {
     if (!entry) return;
 
     try {
-      const res = await fetch("/api/expenses", {
+      const res = await apiFetch("/api/expenses", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ row_index, created_at: entry.created_at }),
@@ -85,7 +86,15 @@ export default function Home() {
         alert(data.error ?? "撤回失敗");
         return;
       }
-      setUndoable((prev) => prev.filter((e) => e.row_index !== row_index));
+      setUndoable((prev) =>
+        prev
+          .filter((e) => e.row_index !== row_index)
+          .map((e) =>
+            e.row_index > row_index
+              ? { ...e, row_index: e.row_index - 1 }
+              : e
+          )
+      );
       setRefreshKey((k) => k + 1);
     } catch {
       alert("撤回失敗，請稍後再試");

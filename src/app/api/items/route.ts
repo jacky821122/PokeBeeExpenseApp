@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getItemsByCategory, addItem, removeItem } from "@/lib/sheets";
+import { verifyApiKey } from "@/lib/auth";
 import { CATEGORIES } from "@/lib/constants";
 
 function isAuthorized(request: NextRequest): boolean {
@@ -8,7 +9,10 @@ function isAuthorized(request: NextRequest): boolean {
   return token === process.env.STATS_SECRET;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = verifyApiKey(request);
+  if (authError) return authError;
+
   try {
     const items = await getItemsByCategory();
     return NextResponse.json(items);

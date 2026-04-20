@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Expense } from "@/types/expense";
+import { apiFetch } from "@/lib/apiFetch";
 import type { UndoableEntry } from "@/app/page";
 
 interface RecentEntriesProps {
@@ -38,7 +39,7 @@ export default function RecentEntries({ refreshKey, undoable, onUndo }: RecentEn
           params.set("month", activeFilter);
         }
         params.set("limit", "30");
-        const res = await fetch(`/api/expenses?${params.toString()}`);
+        const res = await apiFetch(`/api/expenses?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
           setExpenses(data);

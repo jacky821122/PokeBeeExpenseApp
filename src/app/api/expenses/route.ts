@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendExpense, getAllExpenses, deleteExpenseRow, isExpenseCacheValid } from "@/lib/sheets";
+import { verifyApiKey } from "@/lib/auth";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import type { ExpenseInput } from "@/types/expense";
 
 export async function POST(request: NextRequest) {
+  const authError = verifyApiKey(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
 
@@ -69,6 +73,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const authError = verifyApiKey(request);
+  if (authError) return authError;
+
   try {
     const scope = request.nextUrl.searchParams.get("scope");
     const month = request.nextUrl.searchParams.get("month");
@@ -106,6 +113,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authError = verifyApiKey(request);
+  if (authError) return authError;
+
   try {
     const { row_index, created_at } = await request.json();
 
