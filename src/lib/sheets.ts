@@ -1,20 +1,25 @@
 import { google } from "googleapis";
 import type { ExpenseInput, Expense } from "@/types/expense";
+import { resolveStore, DEFAULT_STORE_ID } from "@/lib/store";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const SHEET_NAME = "Sheet1";
 const ITEMS_SHEET_NAME = "Items";
 
 // In-memory cache for getAllExpenses (server process lifetime)
-let expensesCache: { data: Expense[]; expiresAt: number } | null = null;
+// Keyed by storeId for future multi-store support
+const expensesCacheMap = new Map<string, { data: Expense[]; expiresAt: number }>();
 const EXPENSES_CACHE_TTL = 60_000; // 60 seconds
 
-export function isExpenseCacheValid(): boolean {
-  return expensesCache !== null && Date.now() < expensesCache.expiresAt;
+export function isExpenseCacheValid(storeId?: string): boolean {
+  const key = storeId ?? DEFAULT_STORE_ID;
+  const cache = expensesCacheMap.get(key);
+  return cache !== null && cache !== undefined && Date.now() < cache.expiresAt;
 }
 
-function invalidateExpensesCache() {
-  expensesCache = null;
+function invalidateExpensesCache(storeId?: string) {
+  const key = storeId ?? DEFAULT_STORE_ID;
+  expensesCacheMap.delete(key);
 }
 
 // Column order in the Google Sheet:
@@ -120,7 +125,8 @@ export async function deleteExpenseRow(row_index: number, created_at: string): P
 }
 
 export async function getAllExpenses(): Promise<Expense[]> {
-  if (isExpenseCacheValid()) return expensesCache!.data;
+  const storeKey = DEFAULT_STORE_ID;
+  if (isExpenseCacheValid(storeKey)) return expensesCacheMap.get(storeKey)!.data;
 
   const sheets = getSheets();
   const sheetId = process.env.SHEET_ID!;
@@ -132,7 +138,7 @@ export async function getAllExpenses(): Promise<Expense[]> {
 
   const rows = res.data.values;
   if (!rows || rows.length <= 1) {
-    expensesCache = { data: [], expiresAt: Date.now() + EXPENSES_CACHE_TTL };
+    expensesCacheMap.set(storeKey, { data: [], expiresAt: Date.now() + EXPENSES_CACHE_TTL });
     return [];
   }
 
@@ -150,7 +156,7 @@ export async function getAllExpenses(): Promise<Expense[]> {
     created_at: row[10] || "",
   }));
 
-  expensesCache = { data, expiresAt: Date.now() + EXPENSES_CACHE_TTL };
+  expensesCacheMap.set(storeKey, { data, expiresAt: Date.now() + EXPENSES_CACHE_TTL });
   return data;
 }
 

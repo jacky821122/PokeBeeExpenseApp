@@ -85,3 +85,18 @@ Note: `amber-200` is light — pair with dark text (`amber-800`), not `text-whit
 - **Heterogeneous units**: mix of weight (斤/公克), count (個/顆), packaging (包/組/份). unit_price is NOT comparable across items. Do not build unit-price rankings.
 - **No user auth**: main app is open. Only `/admin` page and items write API are protected by `STATS_SECRET`.
 - **Google Sheet = sole data store**: app is stateless.
+
+## Multi-store preparation (feature/multi-store-prep)
+
+Infrastructure is in place but **not active**. Current behaviour is single-store.
+
+Key files:
+- `src/lib/store.ts` — `resolveStore()`, `getStoreConfigs()`, `isMultiStoreEnabled()`
+- `src/types/expense.ts` — `store_id?: string` on `ExpenseInput`
+- `src/lib/sheets.ts` — cache is keyed by storeId (defaults to `"main"`)
+
+To enable multi-store in the future:
+1. Set env `STORES='{"main":{"sheetId":"...","label":"本店"},"branch1":{"sheetId":"...","label":"分店1"}}'`
+2. Update API routes to accept/resolve `store_id`
+3. Add store selector UI in frontend
+4. Move categories/items config into per-store Sheet or DB

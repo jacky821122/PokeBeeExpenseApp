@@ -8,6 +8,7 @@ export interface ExpenseInput {
   supplier?: string;
   purchaser?: string;
   note?: string;
+  store_id?: string; // Multi-store support (optional, defaults to "main")
 }
 
 export interface Expense extends ExpenseInput {
