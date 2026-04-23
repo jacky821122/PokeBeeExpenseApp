@@ -86,9 +86,10 @@ Note: `amber-200` is light — pair with dark text (`amber-800`), not `text-whit
 - **No user auth**: main app is open. Only `/admin` page and items write API are protected by `STATS_SECRET`.
 - **Google Sheet = sole data store**: app is stateless.
 
-## Multi-store preparation (feature/multi-store-prep)
+## Multi-store preparation
 
 Infrastructure is in place but **not active**. Current behaviour is single-store.
+See `docs/MULTI_STORE_PLAN.md` for full expansion plan.
 
 Key files:
 - `src/lib/store.ts` — `resolveStore()`, `getStoreConfigs()`, `isMultiStoreEnabled()`

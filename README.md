@@ -35,14 +35,30 @@ src/
 │   ├── layout.tsx                 # 根 layout（PWA meta、viewport）
 │   ├── page.tsx                   # 主頁面：表單 + 最近記錄
 │   ├── globals.css                # Tailwind
-│   └── api/expenses/route.ts      # POST 新增 / GET 最近 30 筆
+│   ├── admin/
+│   │   ├── page.tsx               # 管理後台（品項管理 + 統計報表）
+│   │   └── AdminTabs.tsx          # 後台分頁元件
+│   └── api/
+│       ├── expenses/route.ts      # POST 新增 / GET 查詢 / DELETE 撤回
+│       ├── items/route.ts         # GET 品項 / POST 新增 / DELETE 移除
+│       ├── purchasers/route.ts    # GET 採購人清單
+│       └── admin-auth/route.ts    # POST 管理員驗證
 ├── components/
 │   ├── ExpenseForm.tsx            # 核心輸入表單
-│   └── RecentEntries.tsx          # 最近記錄表格
+│   ├── CalculatorInput.tsx        # 計算機輸入元件
+│   ├── RecentEntries.tsx          # 最近記錄（含月份篩選 + 撤回）
+│   ├── StatsView.tsx              # 統計報表（圖表 + 表格）
+│   └── ItemsManager.tsx           # 品項管理介面
 ├── lib/
 │   ├── sheets.ts                  # Google Sheets API 封裝
-│   ├── constants.ts               # 類別 / 單位 enum
-│   └── autocomplete.ts            # localStorage autocomplete cache
+│   ├── store.ts                   # 多店設定管理（預備）
+│   ├── constants.ts               # 類別 / 單位 / 品項 fallback
+│   ├── auth.ts                    # API Key 驗證
+│   ├── apiFetch.ts                # 前端 API 呼叫封裝
+│   ├── autocomplete.ts            # localStorage autocomplete cache
+│   ├── evaluate.ts                # 數學表達式計算器
+│   └── __tests__/
+│       └── evaluate.test.ts       # 計算器單元測試
 └── types/
     └── expense.ts                 # TypeScript 型別
 ```
@@ -85,6 +101,8 @@ src/
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-sa@your-project.iam.gserviceaccount.com
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 SHEET_ID=你的Sheet_ID
+API_SECRET=自訂的API金鑰（前端送出表單時驗證用）
+STATS_SECRET=自訂的管理員密碼（/admin 登入用）
 ```
 
 > **注意**：`GOOGLE_PRIVATE_KEY` 的值要用雙引號包起來，且 `\n` 需保持原樣（不要換成真正的換行）。
@@ -105,7 +123,7 @@ SHEET_ID=你的Sheet_ID
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 | date | date | 支出日期（預設今天） |
-| category | enum | 類別：肉及蛋白質 / 海鮮 / 菜 / 水果 / 醬料 / 調味粉 / 外帶耗材 / 耗材 / 雜項 |
+| category | enum | 類別：肉及蛋白質 / 海鮮 / 菜 / 水果 / 醬料 / 調味粉 / 外帶耗材 / 耗材 / 主食 / 雜項 |
 | item | string | 品項名稱（依類別顯示對應建議選單） |
 | quantity | number | 數量（預設 1） |
 | unit | enum | 單位：個 / 份 / 顆 / 斤 / 公克 / 包 / 組 |
@@ -128,14 +146,13 @@ SHEET_ID=你的Sheet_ID
 
 ## 使用方式
 
-- **一般使用者**：打開網頁 → 填表 → 送出 → 完成
-- **管理者**：直接在 Google Sheet 中編輯 / 刪除 / 整理資料
-
-> 前端不提供編輯和刪除功能，這是刻意的設計。
+- **一般使用者**：打開網頁 → 填表 → 送出 → 完成（支援 15 分鐘內撤回）
+- **管理者**：`/admin` 頁面可管理品項、查看統計報表；也可直接在 Google Sheet 中編輯資料
 
 ## TODO
 
 - [x] PWA icon 替換成正式的 192x192 / 512x512 PNG
-- [ ] 簡單統計摘要（今日 / 本週花費）
+- [x] 統計摘要（月花費、類別分佈、Top 品項/供應商）
+- [x] 多店擴展基礎架構（已預備，見 `docs/MULTI_STORE_PLAN.md`）
 - [ ] Offline 支援（離線時暫存，上線後自動送出）
 - [ ] 寫入佇列（應對更高併發場景）
