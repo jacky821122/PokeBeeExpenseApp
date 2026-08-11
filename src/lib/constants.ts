@@ -8,6 +8,9 @@ export const CATEGORIES = [
   "外帶耗材",
   "耗材",
   "主食",
+  "勞健保",
+  "電信費",
+  "水電費",
   "雜項",
 ] as const;
 
@@ -23,6 +26,9 @@ export const ITEMS_BY_CATEGORY: Record<string, readonly string[]> = {
   外帶耗材: ["紙碗", "塑膠蓋", "湯叉"],
   耗材: ["耐熱袋", "保鮮膜"],
   主食: ["米", "糙米"],
+  勞健保: ["勞健保"],
+  電信費: ["電信費"],
+  水電費: ["水電費"],
 };
 
 export type Category = (typeof CATEGORIES)[number];
