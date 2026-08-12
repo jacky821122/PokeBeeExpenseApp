@@ -39,6 +39,33 @@ function getSheets() {
   return google.sheets({ version: "v4", auth: getAuth() });
 }
 
+type SheetsClient = ReturnType<typeof getSheets>;
+
+/**
+ * Repairs a row that values.append placed at the wrong starting column: clears the
+ * misplaced cells, then rewrites the values at A:K on the same row. The row itself is
+ * still the right one — only the horizontal offset is wrong — so no other data moves.
+ */
+async function relocateRow(
+  sheets: SheetsClient,
+  sheetId: string,
+  rowIndex: number,
+  startCol: string,
+  endCol: string,
+  values: (string | number)[]
+): Promise<void> {
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: sheetId,
+    range: `${SHEET_NAME}!${startCol}${rowIndex}:${endCol}${rowIndex}`,
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `${SHEET_NAME}!A${rowIndex}:K${rowIndex}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [values] },
+  });
+}
+
 export async function appendExpense(input: ExpenseInput): Promise<Expense> {
   const sheets = getSheets();
   const sheetId = process.env.SHEET_ID!;
@@ -63,27 +90,27 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
     created_at,
   ];
 
-  // Deliberately NOT using values.append: its "table detection" anchors on whatever
-  // block it finds inside the range, so a single stray cell in column K (from a manual
-  // edit) makes every subsequent write land at K:U instead of A:K. Compute the target
-  // row explicitly instead: first free row after column A, then skip down past any row
-  // that still holds a leftover created_at so nothing gets overwritten.
-  const probe = await sheets.spreadsheets.values.batchGet({
+  // values.append is used because it picks the target row atomically on Google's side —
+  // two people submitting at the same moment can never resolve to the same row.
+  // Its downside is that it anchors on a "table" it detects inside the range, so a stray
+  // cell in column K (from a manual sheet edit) makes it write to K:U instead of A:K.
+  // That is what relocateRow below repairs.
+  const res = await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
-    ranges: [`${SHEET_NAME}!A:A`, `${SHEET_NAME}!K:K`],
-  });
-  const [dateCol, createdAtCol] = probe.data.valueRanges ?? [];
-  const createdAtValues = createdAtCol?.values ?? [];
-  let row_index = (dateCol?.values?.length ?? 0) + 1;
-  while ((createdAtValues[row_index - 1]?.[0] ?? "") !== "") row_index++;
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: sheetId,
-    range: `${SHEET_NAME}!A${row_index}:K${row_index}`,
+    range: `${SHEET_NAME}!A:K`,
     valueInputOption: "USER_ENTERED",
     includeValuesInResponse: false,
     requestBody: { values: [row] },
   });
+
+  // updatedRange looks like "Sheet1!A42:K42" — or "Sheet1!K42:U42" when misanchored.
+  const updatedRange = res.data.updates?.updatedRange ?? "";
+  const match = updatedRange.match(/!([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+  const row_index = match ? parseInt(match[2], 10) : undefined;
+
+  if (match && match[1] !== "A" && row_index) {
+    await relocateRow(sheets, sheetId, row_index, match[1], match[3], row);
+  }
 
   invalidateExpensesCache();
   return { ...input, unit_price, created_at, row_index };
