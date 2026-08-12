@@ -63,18 +63,27 @@ export async function appendExpense(input: ExpenseInput): Promise<Expense> {
     created_at,
   ];
 
-  const res = await sheets.spreadsheets.values.append({
+  // Deliberately NOT using values.append: its "table detection" anchors on whatever
+  // block it finds inside the range, so a single stray cell in column K (from a manual
+  // edit) makes every subsequent write land at K:U instead of A:K. Compute the target
+  // row explicitly instead: first free row after column A, then skip down past any row
+  // that still holds a leftover created_at so nothing gets overwritten.
+  const probe = await sheets.spreadsheets.values.batchGet({
     spreadsheetId: sheetId,
-    range: `${SHEET_NAME}!A:K`,
+    ranges: [`${SHEET_NAME}!A:A`, `${SHEET_NAME}!K:K`],
+  });
+  const [dateCol, createdAtCol] = probe.data.valueRanges ?? [];
+  const createdAtValues = createdAtCol?.values ?? [];
+  let row_index = (dateCol?.values?.length ?? 0) + 1;
+  while ((createdAtValues[row_index - 1]?.[0] ?? "") !== "") row_index++;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `${SHEET_NAME}!A${row_index}:K${row_index}`,
     valueInputOption: "USER_ENTERED",
     includeValuesInResponse: false,
     requestBody: { values: [row] },
   });
-
-  // Parse row index from updatedRange, e.g. "Sheet1!A42:K42" → 42
-  const updatedRange = res.data.updates?.updatedRange ?? "";
-  const match = updatedRange.match(/:([A-Z]+)(\d+)$/);
-  const row_index = match ? parseInt(match[2], 10) : undefined;
 
   invalidateExpensesCache();
   return { ...input, unit_price, created_at, row_index };
