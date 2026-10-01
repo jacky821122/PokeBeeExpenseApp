@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { evaluateExpression } from "@/lib/evaluate";
+
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+function subscribeDesktop(onChange: () => void) {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
 
 interface CalculatorInputProps {
   value: string;
@@ -19,33 +27,26 @@ export default function CalculatorInput({
   required,
 }: CalculatorInputProps) {
   const [calculatorOpen, setCalculatorOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const isDesktop = useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
   const [replaceOnNextInput, setReplaceOnNextInput] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const pendingReplaceOnBlurRef = useRef<boolean | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
-  const lastValidResultRef = useRef<number | null>(null);
+  const [lastValidResult, setLastValidResult] = useState<number | null>(null);
 
   const computedValue = evaluateExpression(value);
-  if (value === "") {
-    lastValidResultRef.current = null;
-  } else if (computedValue !== null) {
-    lastValidResultRef.current = computedValue;
+  const previewResult = value === "" ? null : computedValue ?? lastValidResult;
+  if (previewResult !== lastValidResult) {
+    setLastValidResult(previewResult);
   }
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const handle = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    setIsDesktop(mq.matches);
-    mq.addEventListener("change", handle);
-    return () => mq.removeEventListener("change", handle);
-  }, []);
 
   function applyCalculatedTotal() {
     const valid = computedValue !== null && computedValue >= 0;
     if (valid) onChange(String(computedValue));
-    pendingReplaceOnBlurRef.current = valid;
     setReplaceOnNextInput(valid);
     setCalculatorOpen(false);
     inputRef.current?.blur();
@@ -124,9 +125,6 @@ export default function CalculatorInput({
           }
         }}
         onBlur={() => {
-          const pending = pendingReplaceOnBlurRef.current;
-          pendingReplaceOnBlurRef.current = null;
-          setReplaceOnNextInput(pending ?? (computedValue !== null && computedValue >= 0));
           setTimeout(() => {
             if (!isDesktop) return;
             const active = document.activeElement;
@@ -142,7 +140,7 @@ export default function CalculatorInput({
       {calculatorOpen && (
         <>
           <p className="mt-1 h-5 text-right text-sm text-gray-500">
-            = {lastValidResultRef.current !== null ? lastValidResultRef.current : ""}
+            = {previewResult ?? ""}
           </p>
           <div
             className="mt-1 gap-1.5"
