@@ -6,13 +6,18 @@ export function evaluateExpression(expression: string): number | null {
 
   const values: number[] = [];
   const operators: string[] = [];
-  const precedence: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2 };
+  const precedence: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2, neg: 3 };
 
   const applyTopOperator = () => {
     const op = operators.pop();
     const right = values.pop();
+    if (!op || right === undefined) return false;
+    if (op === "neg") {
+      values.push(-right);
+      return true;
+    }
     const left = values.pop();
-    if (!op || right === undefined || left === undefined) return false;
+    if (left === undefined) return false;
     if (op === "+") values.push(left + right);
     if (op === "-") values.push(left - right);
     if (op === "*") values.push(left * right);
@@ -23,20 +28,26 @@ export function evaluateExpression(expression: string): number | null {
     return true;
   };
 
-  let prevToken: string | null = null;
+  let expectOperand = true;
   for (const token of tokens) {
     if (/^\d*\.?\d+$/.test(token)) {
+      if (!expectOperand) return null;
       values.push(Number(token));
+      expectOperand = false;
     } else if (token === "(") {
+      if (!expectOperand) return null;
       operators.push(token);
     } else if (token === ")") {
+      if (expectOperand) return null;
       while (operators.length && operators[operators.length - 1] !== "(") {
         if (!applyTopOperator()) return null;
       }
       if (operators.pop() !== "(") return null;
     } else {
-      if (token === "-" && (prevToken === null || ["+", "-", "*", "/", "("].includes(prevToken))) {
-        values.push(0);
+      if (expectOperand) {
+        if (token !== "-") return null;
+        operators.push("neg");
+        continue;
       }
       while (
         operators.length &&
@@ -46,9 +57,11 @@ export function evaluateExpression(expression: string): number | null {
         if (!applyTopOperator()) return null;
       }
       operators.push(token);
+      expectOperand = true;
     }
-    prevToken = token;
   }
+
+  if (expectOperand) return null;
 
   while (operators.length) {
     if (operators[operators.length - 1] === "(") return null;

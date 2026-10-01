@@ -20,6 +20,20 @@ describe("evaluateExpression", () => {
   it("leading negative", () => expect(evaluateExpression("-5+3")).toBe(-2));
   it("negative after operator", () => expect(evaluateExpression("3*-2")).toBe(-6));
   it("negative in parentheses", () => expect(evaluateExpression("(-3)+5")).toBe(2));
+  it.each([
+    ["6/-2", -3],
+    ["2--3", 5],
+    ["-(2+3)", -5],
+    ["3*-(2+1)", -9],
+    ["--2", 2],
+    ["-2*-3", 6],
+    ["2*--3", 6],
+    ["-(2+(-3))*-4", -4],
+    ["10+3*-2", 4],
+    ["-0.5*4+3", 1],
+  ])("unary minus: %s = %s", (expression, expected) => {
+    expect(evaluateExpression(expression)).toBe(expected);
+  });
 
   // Decimals
   it("decimal numbers", () => expect(evaluateExpression("1.5+2.5")).toBe(4));
@@ -41,4 +55,8 @@ describe("evaluateExpression", () => {
   it("unmatched close paren", () => expect(evaluateExpression("1+2)")).toBeNull());
   it("trailing operator", () => expect(evaluateExpression("1+")).toBeNull());
   it("double operator", () => expect(evaluateExpression("1++2")).toBeNull());
+  it.each(["-", "3*-", "3/-", "-(2+)", "2(-3)", "2(-)", "()", "1+()", "(1)(2)", "1+*2", "3/-0", "3/-(2-2)"])(
+    "rejects incomplete, invalid or zero-dividing expression: %s",
+    (expression) => expect(evaluateExpression(expression)).toBeNull(),
+  );
 });

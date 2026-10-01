@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY } from "@/lib/constants";
+import { CATEGORIES, UNITS, ITEMS_BY_CATEGORY, formatItemLabel, parseItemLabel } from "@/lib/constants";
 import { getCachedValues, addCachedValue } from "@/lib/autocomplete";
 import { evaluateExpression } from "@/lib/evaluate";
 import { apiFetch } from "@/lib/apiFetch";
@@ -145,7 +145,7 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         body: JSON.stringify({
           date,
           category,
-          item: item.trim(),
+          item: parseItemLabel(item).name,
           quantity: Number(quantity),
           unit,
           total_price: totalPriceValue,
@@ -232,8 +232,12 @@ export default function ExpenseForm({ onSuccess }: ExpenseFormProps) {
         <label className={labelClass}>品項</label>
         <Combobox
           value={item}
-          onChange={setItem}
-          options={itemsByCategory[category] ?? []}
+          onChange={(value) => {
+            setItem(value);
+            const suggestedUnit = parseItemLabel(formatItemLabel(category, value)).unit;
+            if (suggestedUnit) setUnit(suggestedUnit);
+          }}
+          options={(itemsByCategory[category] ?? []).map((name) => formatItemLabel(category, name))}
           placeholder="輸入或選取品項"
           inputClass={inputClass}
         />
